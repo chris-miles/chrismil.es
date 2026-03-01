@@ -754,6 +754,12 @@ html {
   outline-offset: 1px;
 }
 
+/* Carousel captions: show on hover (desktop) / tap toggle (mobile) */
+#group-carousel:hover .carousel-caption,
+#group-carousel.captions-visible .carousel-caption {
+  opacity: 1;
+}
+
 /* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

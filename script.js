@@ -2202,11 +2202,12 @@ document.addEventListener("DOMContentLoaded", function () {
       s.style.opacity = j === carouselIdx ? "1" : "0";
     });
     dots.forEach(function (d, j) {
-      const active = j === carouselIdx;
-      d.style.opacity = active ? "1" : "0.45";
-      d.style.transform = active ? "scale(1.2)" : "scale(1)";
-      d.style.backgroundColor = active ? "#b8f200" : "#2c5ff6";
-      d.style.boxShadow = active ? "0 0 0 2px rgba(16, 26, 91, 0.18)" : "none";
+      var span = d.querySelector("span");
+      if (!span) return;
+      var active = j === carouselIdx;
+      span.style.opacity = active ? "1" : "0.45";
+      span.style.transform = active ? "scale(1.25)" : "scale(1)";
+      span.style.backgroundColor = active ? "#b8f200" : "#2c5ff6";
     });
   }
 
@@ -2229,8 +2230,17 @@ document.addEventListener("DOMContentLoaded", function () {
     resetAutoAdvance();
   };
 
-  // Pause on hover/focus for WCAG 2.2.2
+  // Mobile tap to toggle captions
   var carouselEl = document.getElementById("group-carousel");
+  if (carouselEl) {
+    carouselEl.addEventListener("click", function (e) {
+      // Don't toggle if clicking arrows or dots
+      if (e.target.closest("button")) return;
+      carouselEl.classList.toggle("captions-visible");
+    });
+  }
+
+  // Pause on hover/focus for WCAG 2.2.2
   if (carouselEl) {
     carouselEl.addEventListener("mouseenter", function () {
       if (autoTimer) clearInterval(autoTimer);
