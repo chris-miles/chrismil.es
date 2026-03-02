@@ -498,6 +498,19 @@ html {
   font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif;
 }
 
+.emoji-fallback.emoji-svg-fallback {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  vertical-align: -0.12em;
+}
+
+.emoji-fallback.emoji-svg-fallback .emoji-fallback-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 /* Section divider gradients */
 .section-line {
   background: linear-gradient(

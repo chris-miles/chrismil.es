@@ -1815,9 +1815,124 @@ function initContactMaps() {
   });
 }
 
+function drawGlyphData(ctx, glyph) {
+  const size = ctx.canvas.width;
+  ctx.clearRect(0, 0, size, size);
+  ctx.fillText(glyph, 2, 1);
+  return ctx.getImageData(0, 0, size, size).data;
+}
+
+function glyphHasPixels(data) {
+  for (let i = 3; i < data.length; i += 4) {
+    if (data[i] > 0) return true;
+  }
+  return false;
+}
+
+function glyphDataMatches(a, b) {
+  if (!a || !b || a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
+function getGlyphStats(data, width, height) {
+  let opaque = 0;
+  let minX = width;
+  let minY = height;
+  let maxX = -1;
+  let maxY = -1;
+  var colorBuckets = new Set();
+
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      const alpha = data[i + 3];
+      if (alpha < 16) continue;
+
+      opaque += 1;
+      if (x < minX) minX = x;
+      if (x > maxX) maxX = x;
+      if (y < minY) minY = y;
+      if (y > maxY) maxY = y;
+
+      const bucket =
+        (data[i] >> 5) + "-" + (data[i + 1] >> 5) + "-" + (data[i + 2] >> 5);
+      colorBuckets.add(bucket);
+    }
+  }
+
+  if (opaque === 0) {
+    return { opaque: 0, fillRatio: 0, colorBuckets: 0 };
+  }
+
+  const boxW = maxX - minX + 1;
+  const boxH = maxY - minY + 1;
+  return {
+    opaque: opaque,
+    fillRatio: opaque / Math.max(boxW * boxH, 1),
+    colorBuckets: colorBuckets.size,
+  };
+}
+
+function supportsEmojiGlyph(glyph) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 40;
+  canvas.height = 40;
+
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) return false;
+
+  ctx.textBaseline = "top";
+  ctx.font =
+    '32px "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif';
+
+  const glyphData = drawGlyphData(ctx, glyph);
+  if (!glyphHasPixels(glyphData)) return false;
+  const glyphStats = getGlyphStats(glyphData, canvas.width, canvas.height);
+  if (glyphStats.fillRatio < 0.24) return false;
+  if (glyphStats.colorBuckets < 3) return false;
+
+  const tofuData = drawGlyphData(ctx, String.fromCodePoint(0x10ffff));
+  const replacementData = drawGlyphData(ctx, "\uFFFD");
+  const hollowSquareData = drawGlyphData(ctx, "\u25A1");
+
+  return (
+    !glyphDataMatches(glyphData, tofuData) &&
+    !glyphDataMatches(glyphData, replacementData) &&
+    !glyphDataMatches(glyphData, hollowSquareData)
+  );
+}
+
+function getBeetFallbackSvg() {
+  return [
+    '<svg class="emoji-fallback-svg" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">',
+    '<path fill="#4DA84D" d="M30 8c-7 0-12 6-12 13 6 1 10-1 12-6 2 5 6 7 12 6 0-7-5-13-12-13Z"/>',
+    '<path fill="#55B856" d="M19 18c-7 1-11 8-9 15 7 0 11-3 13-9 2 5 7 8 13 8 0-8-6-15-17-14Z"/>',
+    '<path fill="#AB1F4F" d="M32 21c-11 0-20 9-20 20s9 21 20 21 20-10 20-21-9-20-20-20Z"/>',
+    '<ellipse cx="32" cy="43" rx="13" ry="14" fill="#C92B63"/>',
+    '<path fill="#F2EEF5" fill-opacity=".35" d="M25 50c6 2 14 2 21-1-7 6-15 8-23 6-2-1-3-4 2-5Z"/>',
+    "</svg>",
+  ].join("");
+}
+
+function initBeetEmojiFallback() {
+  var beetEls = document.querySelectorAll('.emoji-fallback[data-emoji="beet"]');
+  if (beetEls.length === 0) return;
+  if (supportsEmojiGlyph("🫜")) return;
+
+  beetEls.forEach(function (el) {
+    el.classList.add("emoji-svg-fallback");
+    el.innerHTML = getBeetFallbackSvg();
+  });
+}
+
 // --- Page Interactivity ---
 
 document.addEventListener("DOMContentLoaded", function () {
+  initBeetEmojiFallback();
+
   // Initialize animated page background.
   initFluidBackground();
 
