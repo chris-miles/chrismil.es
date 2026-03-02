@@ -1826,6 +1826,21 @@ document.addEventListener("DOMContentLoaded", function () {
     initCanvas(c, c.dataset.anim);
   });
 
+  // Easter-egg tooltips (eBird, Letterboxd)
+  document.querySelectorAll(".easter-link[data-tooltip-text]").forEach(function (link) {
+    var tip = document.createElement("span");
+    tip.className = "easter-tooltip";
+    tip.setAttribute("aria-hidden", "true");
+    var iconClass = link.getAttribute("data-tooltip-icon");
+    if (iconClass) {
+      var icon = document.createElement("i");
+      icon.className = iconClass + " easter-tooltip-icon";
+      tip.appendChild(icon);
+    }
+    tip.appendChild(document.createTextNode(link.getAttribute("data-tooltip-text")));
+    link.appendChild(tip);
+  });
+
   // Initialize map(s)
   initContactMaps();
 
