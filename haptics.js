@@ -1,6 +1,10 @@
 const WEB_HAPTICS_ESM_URL = "https://cdn.jsdelivr.net/npm/web-haptics/+esm";
 const COOLDOWN_MS = 100;
 const PREFERENCE_KEY = "site-haptics-preference";
+const SUCCESS_PATTERN = [
+  { duration: 40, intensity: 0.85 },
+  { delay: 45, duration: 70, intensity: 1 },
+];
 
 const reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 
@@ -85,7 +89,7 @@ export const haptics = {
     return trigger("medium");
   },
   success: function () {
-    return trigger("success");
+    return trigger(SUCCESS_PATTERN);
   },
   getPreference: getPreference,
   setPreference: setPreference,
