@@ -1,5 +1,7 @@
 /* Canvas Animations & Page Interactivity */
 
+import { haptics } from "./haptics.js";
+
 const TAU = Math.PI * 2;
 
 // --- Motion and performance state ---
@@ -1954,6 +1956,11 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     tip.appendChild(document.createTextNode(link.getAttribute("data-tooltip-text")));
     link.appendChild(tip);
+
+    // Keep easter links tactile but subtle.
+    link.addEventListener("click", function () {
+      haptics.light();
+    });
   });
 
   // Initialize map(s)
@@ -1974,6 +1981,7 @@ document.addEventListener("DOMContentLoaded", function () {
       });
 
       newsHeroBtn.textContent = isHidden ? "View Less" : "View All";
+      haptics.light();
     });
   }
 
@@ -2001,6 +2009,7 @@ document.addEventListener("DOMContentLoaded", function () {
       });
       pubsExpanded = isHidden;
       setPubsButtonState(pubsExpanded);
+      haptics.medium();
 
       if (typeof updateNav === "function") updateNav();
     });
@@ -2018,6 +2027,7 @@ document.addEventListener("DOMContentLoaded", function () {
       if (pubsSection) {
         pubsSection.scrollIntoView({ behavior: "smooth" });
       }
+      haptics.medium();
 
       floatingCollapseBtn.classList.add(
         "opacity-0",
@@ -2070,6 +2080,7 @@ document.addEventListener("DOMContentLoaded", function () {
       gridAlumni.style.display = "none";
       gridCurrent.classList.remove("hidden");
       gridAlumni.classList.add("hidden");
+      haptics.selection();
     });
     tabAlumni.addEventListener("click", function () {
       tabAlumni.classList.remove(
@@ -2103,8 +2114,19 @@ document.addEventListener("DOMContentLoaded", function () {
       gridCurrent.style.display = "none";
       gridAlumni.classList.remove("hidden");
       gridCurrent.classList.add("hidden");
+      haptics.selection();
     });
   }
+
+  // Publication/resource link feedback (user-initiated only)
+  document.querySelectorAll(".pub-action-pill[href]").forEach(function (link) {
+    link.addEventListener("click", function () {
+      var href = link.getAttribute("href") || "";
+      if (/\.pdf($|[?#])/i.test(href)) {
+        haptics.success();
+      }
+    });
+  });
 
   // Smooth scroll for nav links
   document.querySelectorAll('a[href^="#"]').forEach(function (a) {
@@ -2115,6 +2137,12 @@ document.addEventListener("DOMContentLoaded", function () {
       var target = document.querySelector(href);
       if (target) {
         e.preventDefault();
+        if (
+          a.classList.contains("mobile-nav-link") ||
+          a.classList.contains("nav-link")
+        ) {
+          haptics.selection();
+        }
         target.scrollIntoView({ behavior: "smooth" });
         if (window.location.hash !== href) {
           history.pushState(null, "", href);
@@ -2353,10 +2381,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
   window.carouselNav = function (dir) {
     showSlide(carouselIdx + dir);
+    haptics.medium();
     resetAutoAdvance();
   };
   window.carouselGo = function (i) {
     showSlide(i);
+    haptics.selection();
     resetAutoAdvance();
   };
 
@@ -2367,6 +2397,7 @@ document.addEventListener("DOMContentLoaded", function () {
       // Don't toggle if clicking arrows or dots
       if (e.target.closest("button")) return;
       carouselEl.classList.toggle("captions-visible");
+      haptics.light();
     });
   }
 
