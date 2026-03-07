@@ -1,6 +1,78 @@
 /* Canvas Animations & Page Interactivity */
 
-import { haptics } from "./haptics.js";
+// --- Haptics (inlined, no ES module import needed) ---
+
+const haptics = (function () {
+  var WEB_HAPTICS_ESM_URL = "https://cdn.jsdelivr.net/npm/web-haptics/+esm";
+  var COOLDOWN_MS = 100;
+  var PREFERENCE_KEY = "site-haptics-preference";
+  var SUCCESS_PATTERN = [
+    { duration: 40, intensity: 0.85 },
+    { delay: 45, duration: 70, intensity: 1 },
+  ];
+
+  var reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+  var hapticClient = null;
+  var lastTriggerAt = 0;
+  var moduleLoaded = false;
+
+  import(WEB_HAPTICS_ESM_URL)
+    .then(function (mod) {
+      if (mod && typeof mod.WebHaptics === "function") {
+        hapticClient = new mod.WebHaptics();
+      }
+      moduleLoaded = true;
+    })
+    .catch(function () {
+      moduleLoaded = true;
+    });
+
+  function getPreference() {
+    try {
+      var stored = window.localStorage.getItem(PREFERENCE_KEY);
+      return stored === "off" ? "off" : "auto";
+    } catch (e) {
+      return "auto";
+    }
+  }
+
+  function setPreference(nextPreference) {
+    var normalized = nextPreference === "off" ? "off" : "auto";
+    try {
+      window.localStorage.setItem(PREFERENCE_KEY, normalized);
+    } catch (e) {}
+    return normalized;
+  }
+
+  function isEnabled() {
+    var conn = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    if (conn && conn.saveData) return false;
+    if (typeof window.matchMedia === "function" && !window.matchMedia("(pointer: coarse)").matches) return false;
+    if (getPreference() === "off") return false;
+    if (reducedMotionQuery.matches) return false;
+    return true;
+  }
+
+  function trigger(type) {
+    if (!isEnabled()) return false;
+    if (!moduleLoaded || !hapticClient || typeof hapticClient.trigger !== "function") return false;
+    var now = Date.now();
+    if (now - lastTriggerAt < COOLDOWN_MS) return false;
+    lastTriggerAt = now;
+    hapticClient.trigger(type || "medium");
+    return true;
+  }
+
+  return {
+    trigger: trigger,
+    selection: function () { return trigger("selection"); },
+    light: function () { return trigger("light"); },
+    medium: function () { return trigger("medium"); },
+    success: function () { return trigger(SUCCESS_PATTERN); },
+    getPreference: getPreference,
+    setPreference: setPreference,
+  };
+})();
 
 const TAU = Math.PI * 2;
 
@@ -632,7 +704,7 @@ function createCytoskeletonAnimator(rng) {
     }
 
     // Slightly denser motor population for richer light-blue diffusion on desktop.
-    const motorCount = MotionState.lowPower ? 40 : 52;
+    const motorCount = MotionState.lowPower ? 44 : 60;
     for (let i = 0; i < motorCount; i++) {
       const f = filaments[Math.floor(rng() * filaments.length)];
       const t = rng();
@@ -753,7 +825,7 @@ const sharedHistData = {
   warmup: 0.5,
   lastTs: 0,
   time: 0,
-  rng: makeRng(0x82A1C),
+  rng: makeRng((Date.now() ^ 0x82A1C) >>> 0),
   update: function(dt) {
     const now = performance.now();
     if (now - this.lastTs < 8) return;
@@ -1261,7 +1333,7 @@ function createUnifiedAnimator(rng) {
       });
     }
 
-    const motorCount = MotionState.lowPower ? 10 : 16;
+    const motorCount = MotionState.lowPower ? 14 : 22;
     for (let i = 0; i < motorCount; i++) {
       const f = cyto.filaments[Math.floor(rng() * cyto.filaments.length)];
       const t = rng();
@@ -1451,12 +1523,18 @@ function createUnifiedAnimator(rng) {
   }
 
   function drawNetwork(ctx, item) {
+    // Draw edges — highlight active ones in green
     network.links.forEach(function (link) {
+      var isActive = false;
+      for (var pi = 0; pi < network.pulses.length; pi++) {
+        var p = network.pulses[pi];
+        if (p.from === link.a && p.to === link.b) { isActive = true; break; }
+      }
       ctx.beginPath();
       ctx.moveTo(link.a.x, link.a.y);
       ctx.lineTo(link.b.x, link.b.y);
       ctx.strokeStyle = "rgba(44, 95, 246, 0.46)";
-      ctx.lineWidth = 1;
+      ctx.lineWidth = isActive ? 2.2 : 1;
       ctx.stroke();
     });
 
@@ -1464,8 +1542,8 @@ function createUnifiedAnimator(rng) {
       const x = lerp(pulse.from.x, pulse.to.x, pulse.t);
       const y = lerp(pulse.from.y, pulse.to.y, pulse.t);
       ctx.beginPath();
-      ctx.arc(x, y, 2.2, 0, TAU);
-      ctx.fillStyle = "rgba(184, 242, 0, 0.95)";
+      ctx.arc(x, y, 2.5, 0, TAU);
+      ctx.fillStyle = "rgba(184, 242, 0, 1)";
       ctx.fill();
     });
 
@@ -1620,14 +1698,14 @@ function initCanvas(canvasEl, type) {
   const ctx = canvasEl.getContext("2d", { alpha: true });
   if (!ctx) return;
 
-  const seed = hashString(type + "::" + (canvasEl.id || "canvas"));
+  const seed = hashString(type + "::" + (canvasEl.id || "canvas") + "::" + Date.now());
   const rng = makeRng(seed);
   const animator = createAnimator(type, rng);
 
   if (!animator) return;
 
-  let width = 1;
-  let height = 1;
+  let width = 0;
+  let height = 0;
   let dpr = getCanvasDpr();
   let rafId = 0;
   let running = false;
@@ -1663,15 +1741,24 @@ function initCanvas(canvasEl, type) {
     const parent = canvasEl.parentElement;
     if (!parent) return;
 
-    width = Math.max(parent.clientWidth, 1);
-    height = Math.max(parent.clientHeight, 1);
-    dpr = getCanvasDpr();
+    const newW = Math.max(parent.clientWidth, 1);
+    const newH = Math.max(parent.clientHeight, 1);
+    const newDpr = getCanvasDpr();
 
-    canvasEl.width = Math.max(1, Math.round(width * dpr));
-    canvasEl.height = Math.max(1, Math.round(height * dpr));
+    // Always update canvas pixel dimensions and transform for DPR changes
+    canvasEl.width = Math.max(1, Math.round(newW * newDpr));
+    canvasEl.height = Math.max(1, Math.round(newH * newDpr));
+    ctx.setTransform(newDpr, 0, 0, newDpr, 0, 0);
 
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    animator.reset(width, height);
+    // Only regenerate animation state when logical dimensions actually change
+    const dimsChanged = newW !== width || newH !== height;
+    width = newW;
+    height = newH;
+    dpr = newDpr;
+
+    if (dimsChanged) {
+      animator.reset(width, height);
+    }
 
     if (MotionState.reduced) renderStatic();
   }
