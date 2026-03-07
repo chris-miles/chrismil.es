@@ -2053,6 +2053,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Initialize map(s)
   initContactMaps();
 
+
   // Hero News toggle
   var newsHeroBtn = document.getElementById("news-toggle-hero");
   var newsHeroHidden = document.querySelectorAll(".hidden-news-hero");
@@ -2224,10 +2225,9 @@ document.addEventListener("DOMContentLoaded", function () {
       var target = document.querySelector(href);
       if (target) {
         e.preventDefault();
-        if (
-          a.classList.contains("mobile-nav-link") ||
-          a.classList.contains("nav-link")
-        ) {
+        var isMobileNavLink = a.classList.contains("mobile-nav-link");
+        var isDesktopNavLink = a.classList.contains("nav-link");
+        if (isMobileNavLink || isDesktopNavLink) {
           haptics.selection();
         }
         target.scrollIntoView({ behavior: "smooth" });
