@@ -92,6 +92,9 @@ const MotionState = {
 
   function recomputeLowPower() {
     MotionState.lowPower = coarsePointerMedia.matches || batteryLow;
+    if (document.documentElement) {
+      document.documentElement.classList.toggle("lowpower", MotionState.lowPower);
+    }
   }
 
   MotionState.reduced = reducedMotionMedia.matches;
@@ -198,6 +201,7 @@ function cubicBezierPoint(p0, p1, p2, p3, t) {
 function initFluidBackground() {
   const canvas = document.getElementById("shader-gradient");
   const fallback = document.getElementById("orb-fallback");
+  const heroSection = document.getElementById("home");
 
   if (!canvas) return;
 
@@ -368,7 +372,10 @@ function initFluidBackground() {
   let rafId = 0;
   let running = false;
   let lastTs = 0;
-  const startTs = performance.now();
+  let heroVisible = true;
+  let shaderTime = 0;
+  let coastFramesLeft = 0;
+  const COAST_FRAMES = 30;
 
   const pointerTarget = { x: 0.5, y: 0.5 };
   const pointerCurrent = { x: 0.5, y: 0.5 };
@@ -380,6 +387,8 @@ function initFluidBackground() {
 
     pointerTarget.x = clamp(event.clientX / w, 0, 1);
     pointerTarget.y = clamp(1 - event.clientY / h, 0, 1);
+
+    if (!running) kickCoast();
   };
 
   function resize() {
@@ -394,7 +403,17 @@ function initFluidBackground() {
   }
 
   function render(ts) {
-    if (!running) return;
+    if (MotionState.reduced) {
+      stop();
+      renderStaticFrame();
+      return;
+    }
+
+    if (!running && coastFramesLeft <= 0) {
+      rafId = 0;
+      lastTs = 0;
+      return;
+    }
 
     rafId = requestAnimationFrame(render);
 
@@ -415,9 +434,12 @@ function initFluidBackground() {
     );
     pointerEnergy = lerp(pointerEnergy, clamp(velocity * 8.0, 0, 1), 0.18);
 
+    if (running) shaderTime += dt;
+    else coastFramesLeft--;
+
     gl.uniform2f(resolutionLoc, canvas.width, canvas.height);
     gl.uniform2f(mouseLoc, pointerCurrent.x, pointerCurrent.y);
-    gl.uniform1f(timeLoc, (ts - startTs) / 1000);
+    gl.uniform1f(timeLoc, shaderTime);
     gl.uniform1f(energyLoc, pointerEnergy);
 
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -436,16 +458,27 @@ function initFluidBackground() {
   }
 
   function start() {
-    if (running || MotionState.reduced) return;
+    if (running || MotionState.reduced || !heroVisible || document.hidden) return;
     running = true;
     lastTs = 0;
-    rafId = requestAnimationFrame(render);
+    if (!rafId) rafId = requestAnimationFrame(render);
   }
 
   function stop() {
     running = false;
+    coastFramesLeft = 0;
     if (rafId) cancelAnimationFrame(rafId);
     rafId = 0;
+    lastTs = 0;
+  }
+
+  function kickCoast() {
+    if (running || MotionState.reduced || document.hidden) return;
+    coastFramesLeft = COAST_FRAMES;
+    if (!rafId) {
+      lastTs = 0;
+      rafId = requestAnimationFrame(render);
+    }
   }
 
   resize();
@@ -459,10 +492,25 @@ function initFluidBackground() {
 
   window.addEventListener("resize", resize);
 
+  if (typeof IntersectionObserver !== "undefined" && heroSection) {
+    const heroObserver = new IntersectionObserver(
+      function (entries) {
+        entries.forEach(function (entry) {
+          heroVisible = entry.isIntersecting;
+          if (MotionState.reduced) return;
+          if (heroVisible) start();
+          else stop();
+        });
+      },
+      { threshold: 0.18 },
+    );
+    heroObserver.observe(heroSection);
+  }
+
   document.addEventListener("visibilitychange", function () {
     if (MotionState.reduced) return;
     if (document.hidden) stop();
-    else start();
+    else if (heroVisible) start();
   });
 }
 
@@ -536,6 +584,8 @@ function createSpatialGenomicsAnimator(rng) {
   }
 
   function spawnBurst(cell, site) {
+    const maxPuncta = MotionState.lowPower ? 8 : 15;
+    if (cell.puncta.length >= maxPuncta) return;
     const count = 4 + Math.floor(rng() * 5);
     for (let i = 0; i < count; i++) {
       cell.puncta.push({
@@ -2070,6 +2120,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
       newsHeroBtn.textContent = isHidden ? "View Less" : "View All";
       haptics.light();
+
+      rebuildSectionOffsets();
+      if (typeof updateNav === "function") updateNav();
     });
   }
 
@@ -2099,6 +2152,7 @@ document.addEventListener("DOMContentLoaded", function () {
       setPubsButtonState(pubsExpanded);
       haptics.medium();
 
+      rebuildSectionOffsets();
       if (typeof updateNav === "function") updateNav();
     });
   }
@@ -2169,6 +2223,9 @@ document.addEventListener("DOMContentLoaded", function () {
       gridCurrent.classList.remove("hidden");
       gridAlumni.classList.add("hidden");
       haptics.selection();
+
+      rebuildSectionOffsets();
+      if (typeof updateNav === "function") updateNav();
     });
     tabAlumni.addEventListener("click", function () {
       tabAlumni.classList.remove(
@@ -2203,6 +2260,9 @@ document.addEventListener("DOMContentLoaded", function () {
       gridAlumni.classList.remove("hidden");
       gridCurrent.classList.add("hidden");
       haptics.selection();
+
+      rebuildSectionOffsets();
+      if (typeof updateNav === "function") updateNav();
     });
   }
 
@@ -2345,27 +2405,43 @@ document.addEventListener("DOMContentLoaded", function () {
     mobileIndicator.classList.add("visible");
   }
 
+  // Cache section offsets. These only change on resize / font-swap, so
+  // reading them inside the scroll handler forces layout every tick for
+  // no reason. Rebuild only when layout could actually have shifted.
+  var cachedSectionOffsets = [];
+  function rebuildSectionOffsets() {
+    cachedSectionOffsets = [];
+    allSections.forEach(function (section) {
+      if (!section || !section.id) return;
+      cachedSectionOffsets.push({ id: section.id, top: section.offsetTop });
+    });
+  }
+  rebuildSectionOffsets();
+  window.addEventListener("resize", rebuildSectionOffsets, { passive: true });
+
   function getCurrentSectionId() {
     let current = "";
     const viewportProgress = window.pageYOffset + window.innerHeight * 0.35;
-    allSections.forEach((section) => {
-      if (!section || !section.id) return;
-      if (viewportProgress >= section.offsetTop) {
-        current = section.id;
+    for (let i = 0; i < cachedSectionOffsets.length; i++) {
+      if (viewportProgress >= cachedSectionOffsets[i].top) {
+        current = cachedSectionOffsets[i].id;
       }
-    });
+    }
     return current;
   }
 
   function updateNav() {
+    // --- Read phase: all layout reads grouped up front. ---
     const currentSection = getCurrentSectionId();
+    const navWrapperTop =
+      nav && navWrapper ? navWrapper.getBoundingClientRect().top : 0;
+    const isScrolled = nav && navWrapper ? navWrapperTop <= 17 : false;
+    const isPubsSection = currentSection === "publications";
 
+    // --- Write phase: class toggles + indicator reposition. ---
     if (nav && navWrapper) {
-      // When the sticky wrapper hits top ~16px (top-4), it's "stuck" — morph to compact
-      const rect = navWrapper.getBoundingClientRect();
-      nav.classList.toggle("nav--scrolled", rect.top <= 17);
+      nav.classList.toggle("nav--scrolled", isScrolled);
 
-      // Highlight active section link
       navLinks.forEach((link) => {
         link.classList.toggle(
           "active",
@@ -2373,7 +2449,6 @@ document.addEventListener("DOMContentLoaded", function () {
         );
       });
 
-      // Move desktop indicator to active link when not hovering
       if (!navHovered && navIndicator) {
         navIndicator.classList.remove("hover-away");
         nav.classList.remove("indicator-hovering");
@@ -2394,12 +2469,9 @@ document.addEventListener("DOMContentLoaded", function () {
       );
     });
 
-    // Update mobile sliding indicator
     positionMobileIndicator();
 
-    // Floating Collapse Button visibility logic
     if (floatingCollapseBtn) {
-      const isPubsSection = currentSection === "publications";
       if (pubsExpanded && isPubsSection) {
         floatingCollapseBtn.classList.remove(
           "opacity-0",
@@ -2426,13 +2498,33 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  window.addEventListener("scroll", updateNav, { passive: true });
+  // rAF-throttle scroll: coalesces every 120-Hz touch tick into one frame.
+  var navScheduled = false;
+  function onScrollNav() {
+    if (navScheduled) return;
+    navScheduled = true;
+    requestAnimationFrame(function () {
+      navScheduled = false;
+      updateNav();
+    });
+  }
+
+  window.addEventListener("scroll", onScrollNav, { passive: true });
   updateNav();
 
-  // Re-sync after fonts and late layout settling so indicator tracks final link geometry.
-  window.addEventListener("load", updateNav);
+  // Re-sync after fonts and late layout settling so indicator and cached
+  // offsets track final link/section geometry.
+  window.addEventListener("load", function () {
+    rebuildSectionOffsets();
+    updateNav();
+  });
   if (document.fonts && document.fonts.ready) {
-    document.fonts.ready.then(updateNav).catch(function () {});
+    document.fonts.ready
+      .then(function () {
+        rebuildSectionOffsets();
+        updateNav();
+      })
+      .catch(function () {});
   }
 
   // Group photo carousel

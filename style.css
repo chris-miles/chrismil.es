@@ -16,15 +16,12 @@ html {
 }
 ::-webkit-scrollbar-thumb:hover { background: rgba(26, 53, 168, 0.35); }
 
-/* Thin scrollbar for cards with capped height */
-.max-h-\[calc\(100vh-12rem\)\]::-webkit-scrollbar { width: 4px; }
-.max-h-\[calc\(100vh-12rem\)\]::-webkit-scrollbar-track { background: transparent; }
-.max-h-\[calc\(100vh-12rem\)\]::-webkit-scrollbar-thumb {
-    background: rgba(26, 53, 168, 0.12);
-    border: none;
-    border-radius: 4px;
+/* Hide scrollbar for hero cards (still scrollable) */
+.hide-scrollbar {
+    scrollbar-width: none;           /* Firefox */
+    -ms-overflow-style: none;        /* IE/Edge */
 }
-.max-h-\[calc\(100vh-12rem\)\]::-webkit-scrollbar-thumb:hover { background: rgba(26, 53, 168, 0.3); }
+.hide-scrollbar::-webkit-scrollbar { display: none !important; } /* Chrome/Safari */
 
 /* ============ V15 Fluid Background (Shader + CSS Fallback) ============ */
 :root {
@@ -168,22 +165,21 @@ html {
   border: 1.5px solid rgba(255, 255, 255, 0.5);
   box-shadow: 0 10px 40px -10px rgba(16, 26, 91, 0.1);
 
-  /* Smooth morph transition */
+  /* Smooth morph transition (backdrop-filter intentionally omitted:
+     animating blur radius forces the GPU to rebuild the kernel each
+     frame for a change that is imperceptible at these radii). */
   transition:
     max-width 0.35s cubic-bezier(0.4, 0, 0.2, 1),
     padding 0.35s cubic-bezier(0.4, 0, 0.2, 1),
     background 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-    box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1),
-    backdrop-filter 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Scrolled/compacted state */
+/* Scrolled/compacted state (blur radius held constant at 16px) */
 .nav--scrolled {
   max-width: 380px;
   padding: 6px 14px;
   background: rgba(255, 255, 255, 0.78);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.4);
   box-shadow: 0 4px 24px rgba(16, 26, 91, 0.08);
 }
@@ -538,9 +534,9 @@ html {
 }
 
 .pill-topic {
-  background: rgba(255, 255, 255, 0.5);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  /* Uniform white fill replaces the frosted look the removed backdrop-filter
+     was providing. Solid (non-graduated) to match v40's flat appearance. */
+  background: rgba(255, 255, 255, 0.82);
   border: 1px solid rgba(255, 255, 255, 0.5);
   color: #2c5ff6;
   box-shadow:
@@ -560,6 +556,9 @@ html {
 
 /* Hero keyword pills (Methods/Biology in hero card) */
 .hero-keyword-pill {
+  /* Uniform white fill replaces the frosted look from the removed
+     backdrop-filter. !important overrides the inline Tailwind bg utility. */
+  background: rgba(255, 255, 255, 0.84) !important;
   transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, border-color 0.2s ease;
   cursor: default;
 }
@@ -571,9 +570,11 @@ html {
 }
 
 .pill-role {
-  background: rgba(184, 242, 0, 0.12);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  /* v40 tint alpha (0.12) on a solid white base — matches v40's composite
+     color without needing backdrop-filter. background-image is a flat tint
+     layer, background-color is the white "frosting" the blur used to imply. */
+  background-color: rgba(255, 255, 255, 0.72);
+  background-image: linear-gradient(rgba(184, 242, 0, 0.12), rgba(184, 242, 0, 0.12));
   border: 1px solid rgba(255, 255, 255, 0.5);
   color: #101a5b;
   box-shadow:
@@ -582,9 +583,10 @@ html {
 }
 
 .pill-affil {
-  background: rgba(44, 95, 246, 0.12);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  /* v40 tint alpha (0.12) on a solid white base. Flat blue tint over white
+     frosting — matches v40 composite without backdrop-filter. */
+  background-color: rgba(255, 255, 255, 0.70);
+  background-image: linear-gradient(rgba(44, 95, 246, 0.12), rgba(44, 95, 246, 0.12));
   border: 1px solid rgba(44, 95, 246, 0.28);
   color: #101a5b;
   box-shadow:
@@ -602,10 +604,8 @@ html {
   font-size: 0.75rem;
   font-weight: 700;
   color: #101a5b;
-  background: rgba(255, 255, 255, 0.74);
+  background: rgba(255, 255, 255, 0.90);
   border: 1px solid rgba(26, 53, 168, 0.2);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.45),
     0 4px 12px -8px rgba(26, 53, 168, 0.2);
@@ -617,9 +617,11 @@ html {
     box-shadow 0.2s ease;
 }
 
-.pub-action-pill i {
+.pub-action-pill i,
+.pub-action-pill svg {
   color: #2c5ff6;
-  transition: color 0.2s ease;
+  fill: #2c5ff6;
+  transition: color 0.2s ease, fill 0.2s ease;
 }
 
 .pub-action-pill:hover {
@@ -632,8 +634,10 @@ html {
     0 0 16px rgba(184, 242, 0, 0.2);
 }
 
-.pub-action-pill:hover i {
+.pub-action-pill:hover i,
+.pub-action-pill:hover svg {
   color: #b8f200;
+  fill: #b8f200;
 }
 
 .pub-action-pill:focus-visible {
@@ -867,5 +871,41 @@ html {
 
   .bg-grain {
     opacity: 0.03;
+  }
+}
+
+/* Low-power devices: freeze the orb fallback. The orbs only paint if
+   WebGL init failed, i.e. on devices that are already struggling. */
+html.lowpower .orb {
+  animation: none !important;
+  transform: none !important;
+}
+
+/* Short-viewport compaction for the hero profile card so the Utah logo stays
+   visible without needing to scroll inside the card. Hero card height is
+   clamped to calc(100vh - 12rem); below ~820px viewport the default spacing
+   pushes content past that clamp. Reduce avatar + vertical margins just
+   enough to fit everything at laptop heights. */
+@media (max-height: 820px) and (min-width: 768px) {
+  #home .md\:col-span-5 .avatar-frame-accent,
+  #home .md\:col-span-4 .avatar-frame-accent {
+    width: 7rem;
+    height: 7rem;
+    margin-bottom: 0.75rem;
+  }
+  #home .utah-logo-link {
+    margin-bottom: 0.5rem;
+  }
+  /* Social-links row: tighten gap to email block */
+  #home .utah-logo-link + .flex {
+    margin-bottom: 0.75rem;
+  }
+  /* Email monospace block */
+  #home .utah-logo-link + .flex + .text-sm.font-mono {
+    margin-bottom: 0.75rem;
+  }
+  /* Map: slightly smaller on short heights */
+  #home [data-map-hover] > .rounded-xl {
+    height: 6.5rem;
   }
 }
