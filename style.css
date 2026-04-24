@@ -220,7 +220,7 @@ html {
   padding: 6px 14px;
   border-radius: 9999px;
   font-size: 0.875rem;
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Manrope', sans-serif;
   font-weight: 700;
   color: rgba(16, 26, 91, 0.55);
   transition: color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
@@ -467,13 +467,14 @@ html {
   border-radius: 8px;
   padding: 0;
   box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-  font-family: 'Inter', sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
 }
 .map-label .leaflet-popup-content {
   margin: 5px 10px;
   font-size: 11px;
+  line-height: 1.25;
   font-weight: 600;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.01em;
   white-space: nowrap;
 }
 .map-label .leaflet-popup-tip {
@@ -901,11 +902,274 @@ html.lowpower .orb {
     margin-bottom: 0.75rem;
   }
   /* Email monospace block */
+  #home .utah-logo-link + .flex + .email-pill,
   #home .utah-logo-link + .flex + .text-sm.font-mono {
     margin-bottom: 0.75rem;
   }
-  /* Map: slightly smaller on short heights */
-  #home [data-map-hover] > .rounded-xl {
-    height: 6.5rem;
+  /* Let the map block absorb all leftover vertical space in the card so the
+     ~56px saved by the shortened avatar/margins doesn't collapse into a
+     visible gap (neither above the map nor below it). Dropping mt-auto and
+     making the wrapper a growing flex column lets the inner map itself
+     stretch from 6.5rem up to whatever space remains. */
+  #home [data-map-hover] {
+    margin-top: 0;
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
   }
+  #home [data-map-hover] > .rounded-xl {
+    height: auto;
+    flex: 1 1 auto;
+    min-height: 6.5rem;
+  }
+}
+
+/* ============================================================
+   v43 — minimal cherry-pick from v42b.
+   Goals: cleaner type, better contrast, tighter publications,
+   email pill. Shader/background stay v41 untouched.
+   ============================================================ */
+
+/* --- Font enforcement. Manrope for headings, Inter for body, Cascadia
+   Mono for mono. Tailwind CDN's fontFamily.sans extend can be unreliable,
+   so lock the stacks here with !important. */
+html,
+body,
+.font-sans {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif !important;
+}
+h1, h2, h3, h4, .font-heading {
+  font-family: 'Manrope', system-ui, sans-serif !important;
+  letter-spacing: -0.015em;
+}
+.font-mono, .email-pill {
+  font-family: 'Cascadia Mono', ui-monospace, monospace !important;
+}
+body {
+  font-size: 1.0625rem;
+  line-height: 1.55;
+  font-weight: 400;
+}
+#home h1 {
+  letter-spacing: -0.025em;
+}
+/* Prose-heavy cards breathe less than the default. */
+.misc-photo-card p,
+#about p {
+  line-height: 1.5;
+}
+
+/* --- Readability bumps (AA contrast).
+   v41's gray-500/400 reads washed-out against the glass cards. */
+#publications .text-gray-500,
+#group .text-gray-500,
+.timeline-links .text-gray-500,
+.text-gray-500 {
+  color: #475569 !important;
+}
+#group .text-gray-400,
+.timeline-links .text-gray-400,
+.misc-photo-card p,
+.text-gray-400 {
+  color: #5b6577 !important;
+}
+.text-dark\/50 {
+  color: rgba(16, 26, 91, 0.72) !important;
+}
+/* Small all-caps labels were thin mid-blue; darken for legibility
+   while staying in the v41 palette. */
+.uppercase.tracking-widest.text-\[\#2c5ff6\],
+.uppercase.tracking-wider.text-\[\#2c5ff6\] {
+  color: #1a35a8 !important;
+  letter-spacing: 0.14em;
+}
+#home .text-\[\#2c5ff6\].tracking-widest {
+  color: #1a35a8 !important;
+}
+/* Exception: the "Associate Professor" line reads as identity rather than a
+   section label, so keep it in the electric-blue accent like v41. */
+#home .font-semibold.uppercase.tracking-widest.text-\[\#2c5ff6\] {
+  color: #2c5ff6 !important;
+}
+
+/* --- Glass card fill bumps on density-heavy surfaces (publications)
+   so translucent whites don't blur into one another. */
+#publications .grid > div {
+  background-color: rgba(255, 255, 255, 0.78) !important;
+  border-color: rgba(255, 255, 255, 0.65);
+}
+#group .bg-white\/30 {
+  background-color: rgba(255, 255, 255, 0.68) !important;
+  border-color: rgba(44, 95, 246, 0.35) !important;
+}
+.pill-topic {
+  border-color: rgba(44, 95, 246, 0.28);
+}
+.hero-keyword-pill {
+  border-color: rgba(44, 95, 246, 0.28) !important;
+}
+.pub-action-pill {
+  border-color: rgba(26, 53, 168, 0.32);
+}
+
+/* --- Publications desktop layout: title + authors left, venue stacked
+   above action pills on the right so each has room to be comfortable. */
+@media (min-width: 768px) {
+  #publications .grid > div {
+    align-items: center;
+  }
+  #publications .grid > div > .flex-1 {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "title    meta"
+      "authors  meta";
+    column-gap: 1.25rem;
+    row-gap: 0.2rem;
+    align-items: center;
+  }
+  #publications .grid > div > .flex-1 > h3 {
+    grid-area: title;
+    margin-bottom: 0 !important;
+  }
+  #publications .grid > div > .flex-1 > .text-sm {
+    grid-area: authors;
+  }
+  #publications .grid > div > .flex-1 > .flex.items-center.gap-2 {
+    grid-area: meta;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-self: end;
+    align-self: center;
+    gap: 0.45rem;
+    width: max-content;
+    max-width: 14rem;
+    text-align: right;
+    white-space: normal;
+  }
+  #publications .grid > div > .flex-1 > .flex.items-center.gap-2 > .pub-action-pill {
+    min-height: 2rem;
+    padding: 0.4rem 0.9rem;
+    font-size: 0.8125rem;
+  }
+  #publications .grid > div > .flex-1 > .flex.items-center.gap-2 > span.uppercase {
+    font-size: 0.72rem;
+    line-height: 1.1;
+  }
+}
+/* Venue labels get the site's electric blue back; the darker #1a35a8
+   from the AA bump stays only for genuinely tiny utility labels. */
+#publications .grid > div > .flex-1 > .flex.items-center.gap-2 > span.uppercase {
+  color: #2c5ff6 !important;
+  letter-spacing: 0.12em;
+}
+
+/* --- Pub thumbnail contrast lift. v41 already does grayscale via
+   Tailwind's `grayscale group-hover:grayscale-0`; this layer just
+   adds a touch more contrast so they don't vanish into the paper. */
+#publications .grid > div > .shrink-0 img {
+  filter: grayscale(1) contrast(1.05) brightness(0.96);
+}
+#publications .grid > div:hover > .shrink-0 img {
+  filter: none;
+}
+
+/* --- "View All" news toggle → small editorial control pill. */
+#news-toggle-hero {
+  font-family: 'Cascadia Mono', 'Inconsolata', ui-monospace, monospace !important;
+  font-size: 0.66rem !important;
+  letter-spacing: 0.1em !important;
+  color: #1a35a8 !important;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(44, 95, 246, 0.22);
+  border-radius: 9999px;
+  padding: 0.3rem 0.72rem !important;
+  box-shadow: 0 6px 14px -10px rgba(16, 26, 91, 0.32);
+  transition: background 0.22s ease, color 0.22s ease, border-color 0.22s ease,
+              transform 0.22s ease, box-shadow 0.22s ease;
+}
+#news-toggle-hero:hover {
+  background: #2c5ff6;
+  color: #ffffff !important;
+  border-color: #2c5ff6;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 20px -10px rgba(44, 95, 246, 0.6);
+}
+
+/* --- Email pill: at rest, matches the hero-keyword pill family (soft white,
+   thin blue border, small shadow) so it reads as part of the card, not a
+   beacon. Chartreuse is reserved for hover/focus so the interaction still
+   feels lively without shouting on first glance. */
+.email-pill {
+  display: inline-block;
+  padding: 0.4rem 0.9rem;
+  border-radius: 9999px;
+  font-size: 0.78rem;
+  color: #101a5b;
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(44, 95, 246, 0.28);
+  box-shadow: 0 1px 3px rgba(16, 26, 91, 0.06);
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+  user-select: text;
+  cursor: pointer;
+  position: relative;
+  /* Button reset so <button.email-pill> matches the old <div> visual. */
+  font-family: 'Cascadia Mono', ui-monospace, monospace;
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: inherit;
+  text-align: center;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.email-pill:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(184, 242, 0, 0.7);
+  box-shadow:
+    0 4px 12px rgba(44, 95, 246, 0.12),
+    0 0 0 2px rgba(184, 242, 0, 0.14);
+}
+.email-pill:focus-visible {
+  outline: none;
+  border-color: rgba(184, 242, 0, 0.85);
+  box-shadow:
+    0 0 0 3px rgba(184, 242, 0, 0.32),
+    0 3px 10px rgba(16, 26, 91, 0.08);
+}
+/* Tooltip sits to the RIGHT of the pill so it never overlaps the
+   social-icons row above. Only appears once the email is revealed. */
+.email-pill::after {
+  content: "";
+  position: absolute;
+  left: calc(100% + 0.6rem);
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.6rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #2c5ff6;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  line-height: 1.1;
+  max-width: 4.5rem;
+  text-align: left;
+  /* allow the label to wrap onto two lines rather than pushing layout wider */
+  white-space: normal;
+}
+.email-pill.revealed::after {
+  content: "click to copy";
+  opacity: 0.85;
+}
+@media (hover: none) {
+  .email-pill.revealed::after { content: "tap to copy"; }
 }

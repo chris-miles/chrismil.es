@@ -2598,3 +2598,111 @@ document.addEventListener("DOMContentLoaded", function () {
 
   if (slides.length > 0) resetAutoAdvance();
 });
+
+// --- v43: Email pill unscramble on hover/focus, click or Enter/Space to copy ---
+document.addEventListener("DOMContentLoaded", function () {
+  var emailPill = document.querySelector(".email-pill");
+  if (!emailPill) return;
+  var statusEl = document.getElementById("email-pill-status");
+
+  var obfuscated = "chris.miles(at)utah(dot)edu";
+  var real = "chris.miles@utah.edu";
+  emailPill.textContent = obfuscated;
+
+  var timerId = null;
+  function scrambleTo(target) {
+    if (timerId) { clearInterval(timerId); timerId = null; }
+    var steps = 0;
+    var maxSteps = 12;
+    var chars = "abcdefghijklmnopqrstuvwxyz.@()";
+    timerId = setInterval(function () {
+      steps++;
+      var out = "";
+      var len = Math.max(emailPill.textContent.length, target.length);
+      for (var i = 0; i < len; i++) {
+        if (steps >= maxSteps) {
+          out += target[i] || "";
+        } else if (i < (steps / maxSteps) * target.length) {
+          out += target[i] || "";
+        } else {
+          out += chars[Math.floor(Math.random() * chars.length)];
+        }
+      }
+      emailPill.textContent = out;
+      if (steps >= maxSteps) {
+        clearInterval(timerId);
+        timerId = null;
+        emailPill.textContent = target;
+      }
+    }, 24);
+  }
+
+  var isRevealed = false;
+  var hasHover = window.matchMedia && window.matchMedia("(hover: hover)").matches;
+
+  function reveal() {
+    if (isRevealed) return;
+    scrambleTo(real);
+    isRevealed = true;
+    emailPill.classList.add("revealed");
+  }
+  function conceal() {
+    scrambleTo(obfuscated);
+    isRevealed = false;
+    emailPill.classList.remove("revealed");
+  }
+  function announce(msg) {
+    if (statusEl) statusEl.textContent = msg;
+  }
+
+  if (hasHover) {
+    emailPill.addEventListener("mouseenter", reveal);
+    emailPill.addEventListener("mouseleave", function () {
+      if (emailPill.matches(":focus-visible")) return;
+      conceal();
+    });
+  }
+
+  emailPill.addEventListener("focus", reveal);
+  emailPill.addEventListener("blur", function () {
+    if (hasHover && emailPill.matches(":hover")) return;
+    conceal();
+  });
+
+  function copyEmail() {
+    if (!navigator.clipboard) {
+      announce("Copy unavailable — email is " + real);
+      return;
+    }
+    navigator.clipboard.writeText(real).then(
+      function () {
+        emailPill.textContent = "copied! ✓";
+        announce("Email address copied to clipboard");
+        setTimeout(function () {
+          emailPill.textContent = real;
+        }, 1200);
+      },
+      function () {
+        announce("Copy failed — email is " + real);
+      }
+    );
+  }
+
+  emailPill.addEventListener("click", function () {
+    if (!isRevealed) {
+      reveal();
+      return;
+    }
+    copyEmail();
+  });
+
+  emailPill.addEventListener("keydown", function (event) {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    if (!isRevealed) {
+      reveal();
+      return;
+    }
+    copyEmail();
+  });
+});

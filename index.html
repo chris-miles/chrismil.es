@@ -22,7 +22,7 @@
             },
             fontFamily: {
               sans: ["Inter", "sans-serif"],
-              heading: ["Outfit", "sans-serif"],
+              heading: ["Manrope", "sans-serif"],
               mono: ["Cascadia Mono", "monospace"],
             },
             boxShadow: {
@@ -49,7 +49,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:ital,wght@0,400;0,500;0,600;1,400&family=Cascadia+Mono:wght@400;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:ital,wght@0,400;0,500;0,600;1,400&family=Cascadia+Mono:wght@400;700&display=swap"
       rel="stylesheet"
     />
     <link
@@ -265,9 +265,20 @@
                 ></a>
               </div>
 
-              <div class="text-sm font-mono text-gray-500 mb-5">
+              <button
+                type="button"
+                class="email-pill mb-5"
+                aria-label="Reveal and copy email address"
+                aria-describedby="email-pill-status"
+              >
                 chris.miles(at)utah(dot)edu
-              </div>
+              </button>
+              <span
+                id="email-pill-status"
+                class="sr-only"
+                role="status"
+                aria-live="polite"
+              ></span>
 
               <!-- Contact / Map Integrated -->
               <div
@@ -323,13 +334,13 @@
                   <span class="text-[#101a5b]">for</span>
                   <span class="text-[#2c5ff6]">cell</span>
                   <span class="text-[#101a5b]">and</span>
-                  <span class="text-[#2c5ff6]">molecular biology</span>.
+                  <span class="text-[#2c5ff6]">molecular biology</span>
                 </h2>
                 <p
                   class="text-gray-600 text-base md:text-[1.08rem] font-medium max-w-2xl leading-relaxed mb-0"
                 >
                   Stochastic spatiotemporal dynamics of subcellular
-                  organization.
+                  organization
                 </p>
               </div>
 
@@ -2709,8 +2720,8 @@
 
           <!-- Join Us Card -->
           <div
-            class="bg-white/30 backdrop-blur-lg rounded-[2rem] p-8 border border-dashed border-[#2c5ff6]/25 flex flex-col items-center justify-center text-center hover:bg-white/60 hover:border-[#2c5ff6]/45 hover:shadow-[0_0_24px_rgba(184,242,0,0.12)] transition-all duration-300 cursor-pointer group"
-            tabindex="0" role="group"
+            class="bg-white/30 backdrop-blur-lg rounded-[2rem] p-8 border border-dashed border-[#2c5ff6]/25 flex flex-col items-center justify-center text-center transition-all duration-300 group"
+            role="group"
           >
             <div
               class="text-5xl mb-6 group-hover:scale-110 group-hover:rotate-12 transition-transform duration-500"
