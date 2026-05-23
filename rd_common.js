@@ -248,15 +248,21 @@
           if (active) {
             const nx = x / Math.max(simW - 1, 1);
             const ny = y / Math.max(simH - 1, 1);
-            // Aspect-correct the pulse so it appears circular on screen.
-            // (Sim grid is rendered stretched to the full viewport, so a circle in
-            // normalized sim coords would otherwise appear as an ellipse.)
+            // Aspect-correct so the pulse is circular on screen, not elliptical.
             const aspect = state.size.cssW / Math.max(state.size.cssH, 1);
             const dx = (nx - pointer.x) * aspect;
             const dy = ny - pointer.y;
-            const pulse = Math.exp(-(dx * dx + dy * dy) / 0.0035) * (0.036 + pointer.energy * 0.055);
+            // Pulse magnitude is driven entirely by pointer.energy (decays *= 0.94
+            // per frame, half-life ~200ms). Stationary cursor -> no continuous
+            // injection -> no Gray-Scott auto-catalytic buildup-then-collapse cycle.
+            // The (1 - v*0.75) factor is a tasteful saturation guard that reduces
+            // pumping into already-bright regions.
+            const pulse = Math.exp(-(dx * dx + dy * dy) / 0.0035)
+              * pointer.energy
+              * 0.11
+              * Math.max(0, 1 - v * 0.75);
             vv += pulse;
-            uu -= pulse * 0.34;
+            uu -= pulse * 0.30;
           }
 
           nextU[i] = utils.clamp(uu, 0, 1);
