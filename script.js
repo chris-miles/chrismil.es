@@ -2072,8 +2072,9 @@ function initBeetEmojiFallback() {
 document.addEventListener("DOMContentLoaded", function () {
   initBeetEmojiFallback();
 
-  // Initialize animated page background.
-  initFluidBackground();
+  // Page background is now driven by rd_background.js (reaction-diffusion labyrinth).
+  // The original WebGL fluid shader (initFluidBackground) is preserved above for reference.
+  // initFluidBackground();
 
   // Initialize canvases
   document.querySelectorAll("canvas[data-anim]").forEach(function (c) {

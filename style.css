@@ -476,6 +476,9 @@ html {
   font-weight: 600;
   letter-spacing: 0.01em;
   white-space: nowrap;
+  /* Override Leaflet's inline width -- it mismeasures with nowrap + custom margin
+     and crops the navy wrapper short of the actual text. */
+  width: auto !important;
 }
 .map-label .leaflet-popup-tip {
   background: #101a5b;
