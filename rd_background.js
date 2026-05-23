@@ -40,6 +40,25 @@
       pointer.hover = 0;
       pointer.active = 0;
     }, { passive: true });
+    // Mobile taps fire pointerdown/pointerup but no pointermove, so the
+    // energy-from-motion path above stays at 0 and the bg never pulses on
+    // touch. Inject a burst on pointerup so a tap produces the same brief
+    // pulse a mouse hover would. pointerup specifically (not pointerdown) so
+    // scroll gestures, which resolve as pointercancel on mobile, don't flash
+    // the bg on every scroll.
+    window.addEventListener("pointerup", function (event) {
+      const w = Math.max(1, window.innerWidth);
+      const h = Math.max(1, window.innerHeight);
+      pointer.px = pointer.x;
+      pointer.py = pointer.y;
+      pointer.x = clamp01(event.clientX / w);
+      pointer.y = clamp01(event.clientY / h);
+      pointer.hover = 1;
+      pointer.active = 1;
+      pointer.energy = Math.min(1, pointer.energy + 0.5);
+      clearTimeout(pointer.timer);
+      pointer.timer = setTimeout(function () { pointer.active = 0; }, 280);
+    }, { passive: true });
     return pointer;
   }
 
