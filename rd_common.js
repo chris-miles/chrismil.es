@@ -101,13 +101,24 @@
       const prevW = state.simW;
       const prevH = state.simH;
       // Always update the display canvas backing size (cheap -- no sim work).
+      // Decoupling this from the sim-rebuild decision below lets the canvas keep
+      // covering the visible viewport on mobile URL-bar transitions without
+      // triggering a reseed.
       state.size = utils.resizeCanvas(canvas, maxDpr);
       const newSimW = utils.clamp(Math.round(state.size.cssW / pixelDiv), sb[0], sb[1]);
       const newSimH = utils.clamp(Math.round(state.size.cssH / pixelDiv), sb[2], sb[3]);
-      // Grid dimensions unchanged -- preserve existing sim state, skip the warmup.
-      // This makes resize feel instant in the common case where viewport changes
-      // don't cross a simBounds clamp threshold.
-      if (newSimW === prevW && newSimH === prevH && state.V) return;
+      // Skip reseed when only the height changed by a small amount. On mobile,
+      // scroll-driven URL-bar show/hide moves innerHeight by ~50-80px; at
+      // pixelDiv=11 that's 4-7 sim rows. Without this hysteresis every URL-bar
+      // transition triggered a full reseed + 980-step warmup, visible as the
+      // labyrinth violently regenerating on every scroll. Width changes still
+      // rebuild (orientation flips, real desktop resizes); large desktop height
+      // changes also still rebuild.
+      const REBUILD_HEIGHT_THRESHOLD = 10;
+      if (state.V && newSimW === prevW &&
+          Math.abs(newSimH - prevH) <= REBUILD_HEIGHT_THRESHOLD) {
+        return;
+      }
       state.simW = newSimW;
       state.simH = newSimH;
       const n = state.simW * state.simH;
