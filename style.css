@@ -885,35 +885,57 @@ html.lowpower .orb {
   transform: none !important;
 }
 
-/* Short-viewport compaction for the hero profile card so the Utah logo stays
-   visible without needing to scroll inside the card. Hero card height is
-   clamped to calc(100vh - 12rem); below ~820px viewport the default spacing
-   pushes content past that clamp. Reduce avatar + vertical margins just
-   enough to fit everything at laptop heights. */
-@media (max-height: 820px) and (min-width: 768px) {
-  #home .md\:col-span-5 .avatar-frame-accent,
-  #home .md\:col-span-4 .avatar-frame-accent {
-    width: 7rem;
-    height: 7rem;
-    margin-bottom: 0.75rem;
+/* ============================================================
+   v48 — Height-responsive hero cards (replaces the v47 single
+   max-height:820px compaction step, which left two dead zones:
+   below ~789px the map still clipped, and between 820–907px the
+   compaction was OFF but the card still overflowed the
+   calc(100vh-12rem) cap. Both cards now flex/compact smoothly
+   across the whole viewport-height range via clamp() variables.
+
+   INVARIANTS (do not break — these protect the always-visible
+   navbar and were the source of past regressions):
+   - The grid is items-stretch, so BOTH cards render at the taller
+     card's natural height, capped at calc(100vh-12rem). NEVER add
+     fixed spacing / uncapped min-heights that grow a card's
+     NATURAL height — that makes it the row driver and can push the
+     navbar off-screen. Only ever REDUCE height or DISTRIBUTE
+     existing slack here.
+   - The map frame's md:h-40 (160px) is what made the left card
+     715px tall; we override it to height:auto and let the map
+     flex-grow into leftover space, with a vh-clamped min so the
+     left card's natural height stays <= the right card's (~597px)
+     and the map is always visible down to ~700px viewports.
+   ============================================================ */
+@media (min-width: 768px) {
+  #home {
+    /* avatar: 9rem (=md:w-36) at tall viewports, tapering to 6rem near 700px.
+       calc(35.6vh - 11.25rem) evaluates to exactly 7rem at vh=820 (matching
+       the old compaction step) and clamps at both ends. */
+    --profile-avatar: clamp(6rem, calc(35.6vh - 11.25rem), 9rem);
+    --profile-gap: clamp(0.4rem, 1.1vh, 0.9rem);
+    --profile-gap-lg: clamp(0.55rem, 1.4vh, 1.25rem);
+    /* map min only binds on short viewports — flex grows it on tall ones, so a
+       low floor here just lets the map stay visible (small) at ~650-700px
+       without shrinking it where there's room. */
+    --profile-map-min: clamp(3.5rem, 11vh, 6rem);
   }
-  #home .utah-logo-link {
-    margin-bottom: 0.5rem;
+
+  /* --- LEFT card: avatar + key vertical margins shrink with viewport height. */
+  #home .avatar-frame-accent {
+    width: var(--profile-avatar);
+    height: var(--profile-avatar);
+    margin-bottom: var(--profile-gap-lg);
   }
-  /* Social-links row: tighten gap to email block */
-  #home .utah-logo-link + .flex {
-    margin-bottom: 0.75rem;
-  }
-  /* Email monospace block */
-  #home .utah-logo-link + .flex + .email-pill,
-  #home .utah-logo-link + .flex + .text-sm.font-mono {
-    margin-bottom: 0.75rem;
-  }
-  /* Let the map block absorb all leftover vertical space in the card so the
-     ~56px saved by the shortened avatar/margins doesn't collapse into a
-     visible gap (neither above the map nor below it). Dropping mt-auto and
-     making the wrapper a growing flex column lets the inner map itself
-     stretch from 6.5rem up to whatever space remains. */
+  #home .utah-logo-link { margin-bottom: var(--profile-gap); }
+  #home .hero-social-row { margin-bottom: var(--profile-gap); }
+  #home .email-pill { margin-bottom: var(--profile-gap); }
+  #home .leave-stripe { margin-bottom: var(--profile-gap); }
+  #home .leave-stripe .leave-pad { padding-block: clamp(5px, 0.9vh, 8px); }
+
+  /* --- LEFT card: map always absorbs leftover vertical space (no mt-auto gap,
+     no fixed md:h-40). min-height is vh-clamped so the left card's natural
+     height never exceeds the right card's, keeping the row (and navbar) safe. */
   #home [data-map-hover] {
     margin-top: 0;
     flex: 1 1 auto;
@@ -921,10 +943,33 @@ html.lowpower .orb {
     flex-direction: column;
     min-height: 0;
   }
-  #home [data-map-hover] > .rounded-xl {
-    height: auto;
+  #home [data-map-hover] > .hero-map-frame {
+    height: auto;          /* override Tailwind md:h-40 (160px) */
     flex: 1 1 auto;
-    min-height: 6.5rem;
+    min-height: var(--profile-map-min);
+  }
+
+  /* --- RIGHT card: distribute the slack (right content ~597px is shorter than
+     the left card) instead of dumping it all into one mt-auto gap above the
+     news. space-between splits it between the motif row, research areas, and
+     news; when content overflows (short viewports) space-between packs to the
+     start so nothing is clipped and the card scrolls normally. The list items
+     also breathe a little with height, soaking some slack inside the lists
+     (per the design owner's preference) so the section gaps stay modest. */
+  #home .hero-content-col { justify-content: space-between; }
+  #home .hero-news { margin-top: 0; }
+  #home .hero-list > li + li { margin-top: clamp(0.75rem, 1.5vh, 1.5rem); }
+
+  /* Plan B (minimal, smooth): the card cap reserves 12rem so the floating
+     bottom nav stays clear. On tall viewports (>=850px) that's unchanged. But
+     below ~850px a fixed 12rem reserve leaves dead space between the cards and
+     the nav while the left card still can't fit its map, so taper the reserve
+     down to 9rem by ~690px — giving both cards a little more height exactly
+     where it's needed. calc(30vh - 63px) = 9rem at 690px and 12rem at 850px;
+     the clamp pins both ends. The nav keeps >=50px clearance at 650px. This
+     replaces the Tailwind md:max-h-[calc(100vh-12rem)] on .hero-card. */
+  #home .hero-card {
+    max-height: calc(100vh - clamp(9rem, calc(30vh - 63px), 12rem));
   }
 }
 
@@ -974,18 +1019,21 @@ body {
 }
 
 /* --- Readability bumps (AA contrast).
-   v41's gray-500/400 reads washed-out against the glass cards. */
+   v41's gray-500/400 reads washed-out against the glass cards.
+   v47: values shifted to the navy-slate hue of the Tailwind gray ramp
+   (see tailwind.config in index.html) at the same darkness, so the
+   AA bump and the blue-ified grays stay one family. */
 #publications .text-gray-500,
 #group .text-gray-500,
 .timeline-links .text-gray-500,
 .text-gray-500 {
-  color: #475569 !important;
+  color: #46526d !important;
 }
 #group .text-gray-400,
 .timeline-links .text-gray-400,
 .misc-photo-card p,
 .text-gray-400 {
-  color: #5b6577 !important;
+  color: #5c6781 !important;
 }
 .text-dark\/50 {
   color: rgba(16, 26, 91, 0.72) !important;
