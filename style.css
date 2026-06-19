@@ -452,6 +452,27 @@ html {
     0 10px 22px -12px rgba(16, 26, 91, 0.3);
 }
 
+/* Hero profile avatar (v49): chartreuse glow bloom on hovering the PHOTO
+   itself (a small easter egg, not a card-wide response), replacing the v48
+   group-hover:scale-105 zoom. The photo is fixed at the larger resting size;
+   on hover the existing lime identity ring thickens and the ambient glow
+   brightens (with a faint outer ring) — amplifying what's already there rather
+   than adding a new shape. Blur spread kept modest for compositing perf. */
+.hero-avatar {
+  transition: box-shadow 0.5s ease, border-color 0.5s ease;
+}
+#home .hero-avatar:hover {
+  border-color: rgba(255, 255, 255, 0.85);
+  box-shadow:
+    0 0 0 3px rgba(184, 242, 0, 0.5),
+    0 0 0 6px rgba(184, 242, 0, 0.18),
+    0 0 22px rgba(184, 242, 0, 0.4),
+    0 10px 24px -12px rgba(16, 26, 91, 0.32);
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-avatar { transition: none; }
+}
+
 .avatar-frame-accent-sm {
   border: 1.5px solid rgba(255, 255, 255, 0.5);
   box-shadow:
@@ -909,10 +930,13 @@ html.lowpower .orb {
    ============================================================ */
 @media (min-width: 768px) {
   #home {
-    /* avatar: 9rem (=md:w-36) at tall viewports, tapering to 6rem near 700px.
-       calc(35.6vh - 11.25rem) evaluates to exactly 7rem at vh=820 (matching
-       the old compaction step) and clamps at both ends. */
-    --profile-avatar: clamp(6rem, calc(35.6vh - 11.25rem), 9rem);
+    /* avatar (v49): the v48 clamp scaled by ~1.05 so the photo sits at the
+       larger size (the old hover-zoom size) at rest across all heights — the
+       zoom is gone. Max 9.45rem at tall viewports, tapering to 6.3rem near
+       700px. calc(37.4vh - 11.8rem) ≈ 7.35rem at vh=820 (= old 7rem × 1.05).
+       The map (flex 1 1 auto) absorbs the extra px, so left-card height stays
+       ≤ the right card except near the short-viewport map floor. */
+    --profile-avatar: clamp(6.3rem, calc(37.4vh - 11.8rem), 9.45rem);
     --profile-gap: clamp(0.4rem, 1.1vh, 0.9rem);
     --profile-gap-lg: clamp(0.55rem, 1.4vh, 1.25rem);
     /* map min only binds on short viewports — flex grows it on tall ones, so a
