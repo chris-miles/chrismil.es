@@ -971,6 +971,17 @@ html.lowpower .orb {
     height: auto;          /* override Tailwind md:h-40 (160px) */
     flex: 1 1 auto;
     min-height: var(--profile-map-min);
+    display: flex;
+    flex-direction: column;
+  }
+  /* The map's Tailwind h-full is a percentage of the height:auto frame above,
+     which is indefinite. Firefox resolves that to auto -> 0, since every child
+     Leaflet creates is absolutely positioned; the map then never paints. Size it
+     by flex instead. Can't use position:absolute here -- Leaflet writes an inline
+     position:relative onto its container. */
+  #home [data-map-hover] > .hero-map-frame > .js-contact-map {
+    flex: 1 1 auto;
+    min-height: 0;
   }
 
   /* --- RIGHT card: distribute the slack (right content ~597px is shorter than
