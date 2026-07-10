@@ -1634,6 +1634,17 @@ function initContactMaps() {
         }
       });
     }
+
+    // The hero cards are items-stretch, so the Latest News toggle in the right
+    // card changes this map's frame height without firing a window resize --
+    // which is all Leaflet's trackResize watches. Without this the map keeps its
+    // old size and leaves a blank band. invalidateSize() takes no options on
+    // purpose: the default pan:true is what keeps the office marker centred.
+    if (typeof ResizeObserver !== "undefined") {
+      new ResizeObserver(function () {
+        map.invalidateSize();
+      }).observe(el);
+    }
   });
 }
 
