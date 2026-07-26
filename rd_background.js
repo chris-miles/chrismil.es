@@ -258,9 +258,17 @@
     });
   }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
-  } else {
-    init();
+  // v51: this is now the fallback path. rd_gpu.js runs first and sets
+  // __RD_GPU_ACTIVE when the WebGL2 background is up, in which case we stay out
+  // of the way. init() stays reachable so rd_gpu.js can hand off to us later if
+  // the GL context is lost mid-session.
+  window.RDBackground = { init: init };
+
+  if (!window.__RD_GPU_ACTIVE) {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", init);
+    } else {
+      init();
+    }
   }
 })();

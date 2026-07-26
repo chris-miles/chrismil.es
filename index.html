@@ -3480,6 +3480,9 @@
     <!-- Reaction-diffusion page background (replaces the WebGL fluid shader) -->
     <script src="bg_common.js" defer></script>
     <script src="rd_common.js" defer></script>
+    <!-- rd_gpu.js must load before rd_background.js: it claims the canvas when
+         WebGL2 is available, otherwise rd_background.js runs as the CPU fallback. -->
+    <script src="rd_gpu.js" defer></script>
     <script src="rd_background.js" defer></script>
   </body>
 </html>
