@@ -1,0 +1,194 @@
+/* r9 research polish: rules for this aspect only. Overrides style.css; folded in at the end.
+   When folding: delete style.css's `.theme` tile rules (background/border/padding/hover lift),
+   `.theme-link .sw`, `.theme:hover .sw` (the rotate) and the old `.funding` row, then keep these. */
+
+/* ---- Title row: "Research" left, funders right (replaces the separate Funding row) */
+.research-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+}
+.research-head .sec-h { margin: 0; }
+.research-head .funding {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 0 16px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.funding-k {
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--faint);
+  opacity: 0.85;
+  margin-right: 2px;
+}
+.research-head .funding img {
+  height: 24px;
+  width: auto;
+  filter: grayscale(1);
+  opacity: 0.5;
+  transition: filter 0.4s ease, opacity 0.4s ease;
+}
+.research-head .funding img[alt="NSF"] { height: 26px; }
+.research-head .funding img[alt="Hellman Fellows Fund"] { height: 22px; }
+.research-head .funding img:hover { filter: none; opacity: 1; }
+
+/* ---- Topics sit directly on the panel (no card-in-card) */
+.themes { gap: 30px; margin-top: 18px; }
+.theme,
+.theme:hover {
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 1.1rem;
+  box-shadow: none;
+  transform: none;
+}
+.theme { transition: none; }
+.theme:has(.theme-link:focus-visible) { outline: none; }
+
+.theme-art { transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.35s ease; }
+.theme:hover .theme-art,
+.theme:has(.theme-link:focus-visible) .theme-art {
+  transform: translateY(-3px);
+  box-shadow: inset 0 1px 0 var(--frame-highlight), var(--shadow-hover);
+}
+
+/* ---- Title row: swatch + topic name, with the hover-revealed "papers ↓" link at the right */
+.theme-head {
+  display: flex;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 14px 0 0;
+}
+.theme h3 {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0;
+}
+.theme h3 .sw {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  margin: 0;
+  border-radius: 3px;
+  background: var(--h);
+}
+.theme:hover .sw { transform: none; }  /* cancels style.css's rotate: hover never tilts anything */
+
+/* ---- Keywords are the description: plain words, middot-separated, no sentence */
+.kw {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 5px 0 0 19px;
+  padding: 0;
+  list-style: none;
+  font-size: 0.86rem;
+  line-height: 1.55;
+  color: var(--muted);
+  overflow: hidden;  /* clips the separator that would start a wrapped line */
+  pointer-events: none;  /* the positioned <li>s would otherwise sit above the link's stretched ::after */
+}
+.kw li { position: relative; margin-right: 0.95em; white-space: nowrap; }
+.kw li::before {
+  content: "\00b7";
+  position: absolute;
+  left: -0.95em;
+  width: 0.95em;
+  text-align: center;
+  color: var(--faint);
+}
+
+.theme-link {
+  flex: none;
+  margin-left: auto;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+  color: var(--accent-deep);
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+/* The link itself is never transformed: a transform would shrink its stretched ::after
+   (style.css) to the link box, and the whole topic must stay clickable. Its children slide instead. */
+.theme-link > * { transform: translateY(-3px); transition: transform 0.25s ease, text-decoration-color 0.25s ease; }
+.theme-link i { font-size: 0.62rem; }
+.theme-go-n {
+  text-decoration: underline 2px transparent;
+  text-underline-offset: 3px;
+}
+.theme:hover .theme-link,
+.theme-link:focus-visible { opacity: 1; }
+.theme:hover .theme-link > *,
+.theme-link:focus-visible > * { transform: none; }
+.theme:hover .theme-go-n,
+.theme-link:focus-visible .theme-go-n { text-decoration-color: rgba(var(--pop-rgb), 0.9); }
+.theme:hover .theme-link i { transform: translateY(1px); }
+
+/* touch: no hover, so the link is simply shown */
+@media (hover: none) {
+  .theme-link { opacity: 1; }
+  .theme-link > * { transform: none; }
+}
+
+/* ---- Narrow three-column desktop: "Cytoskeleton & cell division" + link no longer fit on one line
+   (needs ~302px), so the link drops under the keywords instead of wrapping the name */
+@media (min-width: 861px) and (max-width: 1099px) {
+  .theme-text { display: flex; flex-direction: column; }
+  .theme-head { display: contents; }
+  .theme h3 { margin-top: 14px; }
+  .kw { order: 1; }
+  .theme-link { order: 2; align-self: flex-start; margin: 5px 0 0 19px; }
+}
+
+/* ---- Tablet and phone: one topic per row, motif left, text right */
+@media (max-width: 860px) {
+  .themes { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .theme {
+    display: grid;
+    grid-template-columns: minmax(112px, 38%) minmax(0, 1fr);
+    align-items: start;
+    column-gap: 18px;
+  }
+  .theme-art { height: 132px; }
+  .theme-head { margin-top: 6px; }
+}
+/* phones: the text column is too narrow for name + link on one line, so the link drops under the keywords */
+@media (max-width: 767px) {
+  .theme { grid-template-columns: minmax(104px, 30%) minmax(0, 1fr); column-gap: 14px; }
+  .theme-art { height: 104px; border-radius: 1rem; }
+  .theme-text { display: flex; flex-direction: column; }
+  .theme-head { display: contents; }
+  .theme h3 { margin-top: 2px; font-size: 1rem; }
+  .kw { order: 1; margin: 4px 0 0; font-size: 0.8rem; line-height: 1.5; }
+  .kw li { white-space: normal; }
+  .theme-link { order: 2; align-self: flex-start; margin: 5px 0 0; }
+  .research-head .funding { gap: 0 12px; }
+  .research-head .funding img { height: 20px; }
+  .research-head .funding img[alt="NSF"] { height: 22px; }
+  .research-head .funding img[alt="Hellman Fellows Fund"] { height: 18px; }
+}
+@media (max-width: 600px) {
+  .kw li:nth-child(n + 5) { display: none; }  /* phones: the first four keywords (biology first) */
+}
+@media (max-width: 420px) {
+  .funding-k { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme:hover .theme-art,
+  .theme:has(.theme-link:focus-visible) .theme-art { transform: none; }
+  .theme-link > *, .theme:hover .theme-link i { transform: none; }
+}

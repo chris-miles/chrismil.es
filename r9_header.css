@@ -1,0 +1,869 @@
+/* r13 lander (from r12_opus). Overrides style.css for the identity band only; folded in at the end.
+   r13 changes: a quiet "News" label, the office building spelled out on the map, the map as a hard rounded frame (the R13
+   block at the end), and r13_b's motifs in the middle, over the email and icons (the R13_B block, which
+   replaces the grid described below).
+   r15: the leave notice is a tab on the card's top edge (the only version; the ribbon and the ?leave, ?nav=b and
+   ?motifs=below toggles are gone), and the phone identity block stacks name / position / department / logo
+   beside the photo.
+   r14 changes (marked "r14"): sentence case for the position and the small labels (no more ?role toggle),
+   icons closer together and to the address, the address optically centred, the desktop map a few px lower.
+
+   One glass card (r11_opus revised for Chris's notes: map with contact, a smaller map, news in a natural
+   place, the nav back to r10_d's attached pill):
+     tab      v53's parental-leave stripe, standing on the top edge (r15; was a full-width ribbon)
+     row 1    photo | name, position, dept + U | (air) | email over icons | office map
+              (the map bleeds in from the card's right edge, so "reach me" = address, profiles, office)
+     row 2    latest news, a footer line from the photo's edge ......... | four small motifs under the map
+   No inner dividers. The nav is the quiet glass pill under the card and detaches on scroll (style.css).
+   Phones: tab / photo + who / motifs / email / icons / map band / news. */
+
+.site-main { /* lander sizes */
+  --ld-pad: 34px;       /* left inset; matches the Research panel's inset */
+  --ld-photo: 124px;
+  --ld-fade: 56px;      /* how far the map fades in from its left edge */
+}
+
+/* =====================================================================
+   GRID
+   ===================================================================== */
+.ld-body {
+  display: grid;
+  /* r13: the air between the name and the contact is capped (r12: 1fr, ~144px at 1440); the map takes the rest */
+  grid-template-columns: auto max-content minmax(24px, 48px) max-content minmax(250px, 1fr);
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    "photo who  .    contact map"
+    "news  news news news    motifs";
+  column-gap: 24px;
+  padding-left: var(--ld-pad);
+}
+.ld-body .hero-avatar {
+  grid-area: photo;
+  align-self: center;
+  width: var(--ld-photo);
+  height: var(--ld-photo);
+  margin: 24px 0 10px;
+}
+.ld-who { grid-area: who; align-self: center; min-width: 0; padding-top: 14px; }
+.ld-contact { grid-area: contact; align-self: center; padding-top: 14px; }
+.ld-map { grid-area: map; margin-left: -8px; }
+.ld-news { grid-area: news; }
+.ld-motifs { grid-area: motifs; }
+
+/* who: name, position, "Department of Mathematics | U logo" */
+/* r14: "Associate Professor" in sentence case (tracked caps read corporate); was r13's ?role=sentence */
+.id-pos { text-transform: none; letter-spacing: 0.01em; font-size: 0.95rem; font-weight: 600; }
+.ld-aff {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 4px 14px;
+  margin-top: 6px;
+  white-space: nowrap;
+}
+.ld-dept {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: #4b566b;
+}
+.ld-dept:hover { color: var(--ink); text-decoration: underline; text-decoration-color: rgba(var(--pop-rgb), 0.8); text-underline-offset: 3px; }
+.ld-aff .utah-logo-link {
+  height: 32px;
+  margin: 0;
+  padding-left: 14px;
+  border-left: 1px solid var(--line);
+}
+
+/* =====================================================================
+   CONTACT: the address over the five profile icons, right next to the office map
+   ===================================================================== */
+.ld-contact {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px; /* r14: was 8px; the address and its icons read as one block */
+}
+/* r14: icons a little closer (37px pitch -> 32px). The row is now as wide as the address above it.
+   Phones keep r13's 2.2rem touch targets (PHONES block). */
+.hero-social-row { gap: 0; margin-left: -6px; }
+.hero-social-row a { border-radius: 999px; width: 2rem; height: 2rem; }
+.hero-social-row a:hover,
+.hero-social-row a:focus-visible { background: rgba(var(--pop-rgb), 0.24); transform: none; }
+
+/* =====================================================================
+   EMAIL (r10_d's treatment, minus the envelope/mailto)
+   Plain mono address, ink colour, dotted cobalt underline; no pill or box at rest.
+   Hover / keyboard focus: the underline goes solid, the text turns cobalt on a faint lime wash,
+   and a small copy glyph appears. Click/Enter/Space copies (r9_header.js); "Copied" shows
+   briefly under the address, which is also the screen-reader live region.
+   ===================================================================== */
+.id-email {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: -6px; /* the button's padding: line the address up with the name above */
+}
+.email-copy {
+  appearance: none;
+  -webkit-appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 6px;
+  margin: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  user-select: text;
+  font-family: 'Cascadia Mono', ui-monospace, SFMono-Regular, Menlo, monospace !important;
+  font-size: 0.86rem;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--ink);
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+.email-text {
+  min-width: 20ch; /* the address is fixed, so nothing after it can move */
+  text-align: left;
+  text-decoration: underline dotted;
+  text-decoration-color: rgba(44, 95, 246, 0.6);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 3px;
+  transition: text-decoration-color 0.2s ease;
+}
+.email-glyph {
+  width: 0.8rem;
+  font-size: 0.72rem;
+  color: var(--accent);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.email-copy:hover,
+.email-copy:focus-visible {
+  color: var(--accent);
+  background: rgba(var(--pop-rgb), 0.2);
+  outline: none;
+}
+.email-copy:hover .email-text,
+.email-copy:focus-visible .email-text {
+  text-decoration-style: solid;
+  text-decoration-color: var(--accent);
+}
+.email-copy:hover .email-glyph,
+.email-copy:focus-visible .email-glyph,
+.email-copy.is-copied .email-glyph { opacity: 0.9; }
+.email-copy:focus-visible { box-shadow: 0 0 0 3px rgba(var(--pop-rgb), 0.45); }
+@media (hover: none) {
+  .email-glyph { opacity: 0.55; } /* touch: show that a tap copies */
+}
+.email-status {
+  position: absolute;
+  left: 6px;
+  bottom: calc(100% + 1px); /* above the address: the icons are below it */
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.68rem; /* r14: sentence case like the other small labels (was 0.6rem caps) */
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+  white-space: nowrap;
+  color: var(--accent);
+  pointer-events: none;
+}
+.email-status.is-error { letter-spacing: 0; color: var(--ink-2); }
+/* ===== /EMAIL ===== */
+
+/* =====================================================================
+   NEWS: the card's footer line: date, the latest item, "Older news (28)". No label: the date says it.
+   ===================================================================== */
+.ld-news {
+  position: relative; /* the popover hangs from here */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 18px;
+  padding: 10px 24px 18px 0;
+  min-width: 0;
+}
+.ld-news .news-now { font-size: 0.9rem; gap: 10px; min-width: 0; }
+.ld-news .older-news { position: static; margin-left: 0; align-self: auto; }
+.older-news summary { font-size: 0.78rem; padding: 0; white-space: nowrap; }
+/* a closed <details> still lays its content out in a narrow box, and long links leaked page width */
+.older-news:not([open]) .news-pop { display: none; }
+.ld-news .news-pop {
+  top: calc(100% - 6px);
+  left: -12px;
+  width: min(560px, calc(100vw - 48px));
+  background: rgba(255, 255, 255, 0.97);
+}
+
+/* =====================================================================
+   OFFICE MAP: right beside the email and icons. (r12's edge fade is switched off in r13: see MAP FRAME at
+   the end.) The office label is pinned just above the marker.
+   ===================================================================== */
+.ld-map {
+  --map-shift-x: 28px; /* = half of --ld-fade; script.js centres the office in the solid part (a plain length: JS reads it) */
+  position: relative;
+  display: block;
+  min-height: 150px;
+  --map-mask-x: linear-gradient(90deg, transparent 0, rgba(0, 0, 0, 0.55) calc(var(--ld-fade) * 0.5), #000 var(--ld-fade));
+  --map-mask-y: linear-gradient(180deg, #000 calc(100% - 12px), transparent 100%);
+  -webkit-mask-image: var(--map-mask-x), var(--map-mask-y);
+  -webkit-mask-composite: source-in;
+  mask-image: var(--map-mask-x), var(--map-mask-y);
+  mask-composite: intersect;
+}
+.ld-map-frame {
+  position: absolute;
+  inset: 0;
+  isolation: isolate; /* keep Leaflet's z-indexed panes under the label/pills */
+  overflow: hidden;
+}
+.map-tint-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+.ld-map .js-contact-map { display: block; width: 100%; height: 100%; background: #dbe1f7; } /* = the tinted ground */
+.ld-map .leaflet-tile-pane { filter: url(#map-tint); }
+.map-hit {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+}
+/* the room label: white, thin cobalt edge, the same cobalt as the marker */
+.map-label {
+  position: absolute;
+  top: calc(50% - 25px);
+  left: calc(50% + var(--map-shift-x));
+  transform: translate(-50%, -100%);
+  z-index: 3;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-family: 'Manrope', system-ui, sans-serif;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--ink);
+  white-space: nowrap;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid rgba(44, 95, 246, 0.28);
+  box-shadow: 0 3px 10px -4px rgba(16, 26, 91, 0.3);
+  pointer-events: none; /* clicks fall through to the tile link */
+}
+.map-btns {
+  position: absolute;
+  left: var(--ld-fade);
+  right: 0;
+  bottom: 14px;
+  z-index: 3;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.25s ease, transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  pointer-events: none;
+}
+.ld-map:hover .map-btns,
+.ld-map:focus-within .map-btns { opacity: 1; transform: none; }
+.ld-map:hover .map-btns a,
+.ld-map:focus-within .map-btns a { pointer-events: auto; }
+.map-btns a {
+  font-family: 'Manrope', system-ui, sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  color: var(--accent-deep);
+  padding: 6px 11px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(44, 95, 246, 0.24);
+  box-shadow: 0 4px 14px -6px rgba(16, 26, 91, 0.35);
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+.map-btns a:hover,
+.map-btns a:focus-visible {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  outline: none;
+}
+.map-btns a:focus-visible { box-shadow: 0 0 0 3px rgba(var(--pop-rgb), 0.55); }
+@media (hover: none) {
+  .map-btns { opacity: 1; transform: none; }
+  .map-btns a { pointer-events: auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .map-btns { transition: opacity 0.2s ease; transform: none; }
+}
+/* tile credit: tiny, bottom-right (label top-left, pills bottom-centre) */
+.ld-map .leaflet-bottom { top: 0; bottom: auto; }
+.ld-map .leaflet-control-attribution {
+  border-radius: 0 0 0 6px;
+  font-size: 7.5px;
+  padding: 0 5px;
+  color: #5c6781;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+
+/* =====================================================================
+   MOTIFS: four small ones under the map, a quiet animated signature (Research shows them large)
+   ===================================================================== */
+.ld-motifs {
+  position: relative;
+  height: 54px;
+  margin: 0 20px 8px 0;  /* r13: lined up with the framed map above */
+  pointer-events: none;
+}
+.ld-motifs canvas {
+  --motif-gap: 0px; /* read by createUnifiedAnimator in script.js (r11 used it for the nav) */
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.95;
+}
+
+/* =====================================================================
+   DESKTOP SIZES
+   ===================================================================== */
+@media (min-width: 1100px) and (max-height: 720px) {
+  .site-main { --ld-photo: 104px; }
+  .ld-body .hero-avatar { margin-top: 16px; }
+}
+@media (min-width: 1024px) and (max-width: 1099px) {
+  .site-main { --ld-pad: 28px; --ld-photo: 100px; --ld-fade: 44px; }
+  .ld-map { --map-shift-x: 22px; }
+  .ld-body { grid-template-columns: auto max-content minmax(8px, 32px) max-content minmax(250px, 1fr); column-gap: 18px; }
+  .id-name { font-size: 1.6rem; }
+}
+
+/* =====================================================================
+   TABLET (768-1023): photo | who over contact | map; news | motifs
+   ===================================================================== */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .site-main { --ld-pad: 26px; --ld-photo: 92px; --ld-fade: 56px; }
+  .ld-map { --map-shift-x: 28px; }
+  .ld-body {
+    grid-template-columns: auto minmax(0, 1fr) minmax(200px, 34%);
+    grid-template-areas:
+      "photo who     map"
+      "photo contact map"
+      "news  news    motifs";
+    column-gap: 20px;
+  }
+  .ld-body .hero-avatar { margin: 18px 0 0; }
+  .id-name { font-size: 1.5rem; }
+  .ld-aff { gap: 12px; }
+  .ld-aff .utah-logo-link { height: 28px; padding-left: 12px; }
+  .ld-who { align-self: end; padding-top: 18px; }
+  .ld-contact { align-self: start; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px 10px; padding-top: 10px; }
+  .email-status { left: 6px; bottom: auto; top: calc(100% - 2px); }
+  .ld-news { padding: 12px 20px 14px 0; }
+}
+
+/* =====================================================================
+   PHONES: tab / photo + who / email / icons / map band / news / motifs (reordered in R13_B and the phone header block)
+   ===================================================================== */
+@media (max-width: 767px) {
+  .site-main { --ld-pad: 18px; --ld-photo: 84px; --ld-fade: 0px; }
+  .ld-body {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "photo who"
+      "contact contact"
+      "map map"
+      "news news"
+      "motifs motifs";
+    column-gap: 16px;
+    padding: 0 var(--ld-pad);
+  }
+  .ld-body .hero-avatar { margin: 18px 0 0; }
+  .ld-who { padding-top: 18px; }
+  .ld-aff { flex-wrap: wrap; white-space: normal; margin-top: 2px; gap: 2px 10px; }
+  .ld-aff .utah-logo-link { height: 26px; padding-left: 0; border-left: 0; }
+  .ld-contact { gap: 4px; padding-top: 0; margin-top: 12px; } /* r14: gap was 0.6rem */
+  .hero-social-row { gap: 2px; }
+  .hero-social-row a { width: 2.2rem; height: 2.2rem; }
+  .email-status { left: calc(100% + 6px); bottom: auto; top: 50%; transform: translateY(-50%); }
+  /* the map is a full-bleed band across the card, fading at top and bottom */
+  .ld-map {
+    --map-shift-x: 0px;
+    height: 108px;
+    min-height: 0;
+    margin: 12px calc(-1 * var(--ld-pad)) 0;
+    -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+    mask-image: linear-gradient(180deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+  }
+  .map-btns { left: 0; bottom: 14px; }
+  .ld-news { padding: 10px 0 6px; row-gap: 4px; }
+  .ld-news .news-pop { top: calc(100% + 4px); left: 0; right: 0; width: auto; }
+  .ld-motifs { height: 60px; margin: 0 -4px 6px; }
+}
+
+
+/* =====================================================================
+   R13
+   ===================================================================== */
+/* A quiet small label in muted grey, used for "News" and for "Office" on the map.
+   r14: sentence case, like "Associate Professor" (r13's ?role=sentence styling, now the default). */
+.ld-label {
+  font-family: 'Manrope', system-ui, sans-serif;
+  font-size: 0.74rem;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.01em;
+  color: #6b7590;
+  white-space: nowrap;
+}
+.ld-news .news-label { flex-shrink: 0; margin-right: -2px; }
+@media (min-width: 768px) and (max-width: 1023px) {
+  .ld-news .news-now { gap: 8px; } /* as r13_a; here the news line already runs the full width */
+}
+
+/* The office label on the map, two lines:  OFFICE 106 LCB / LeRoy Cowles Building */
+.map-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 5px 12px 5px;
+  border-radius: 12px;
+  top: calc(50% - 22px);
+  text-align: center;
+}
+.map-label-top { display: inline-flex; align-items: baseline; gap: 6px; font-size: 0.8rem; font-weight: 700; color: var(--ink); }
+.map-label-top .ld-label { font-size: 0.7rem; }
+.map-label-bldg { font-size: 0.68rem; font-weight: 600; line-height: 1.2; color: #4b566b; }
+@media (max-width: 767px) {
+  /* phones: the map band is short and wide, so the label runs on one line above the marker */
+  .map-label { flex-direction: row; align-items: baseline; gap: 8px; top: calc(50% - 20px); padding: 4px 12px; border-radius: 999px; }
+  .map-label-bldg::before { content: "\00b7"; margin-right: 8px; color: #8a93ab; }
+}
+
+/* ---------------------------------------------------------------------
+   MAP FRAME (Chris, r13: one treatment, no fade). The map is a clean rounded tile like the Research
+   canvases (1.1rem radius, the same thin frame line), inset from the card's edges (r13: and clear of the leave
+   ribbon, now a tab above the card). The office sits in the middle (no fade to offset for). The tile credit sits bottom-right, away
+   from the office label; the hover pills sit above it.
+   --------------------------------------------------------------------- */
+.site-main { --ld-fade: 0px; }
+.ld-map {
+  --map-shift-x: 0px;
+  -webkit-mask-image: none;
+  mask-image: none;
+  margin: 16px 20px 0 0;
+  border-radius: 1.1rem;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px var(--frame-border), 0 6px 18px -12px rgba(16, 26, 91, 0.35);
+}
+.ld-map-frame { border-radius: inherit; }
+.map-btns { left: 0; bottom: 16px; }
+.ld-map .leaflet-bottom { top: auto; bottom: 0; }
+.ld-map .leaflet-control-attribution { border-radius: 6px 0 0 0; }
+@media (max-width: 767px) {
+  .ld-map { margin: 14px 0 0; border-radius: 1rem; }
+}
+
+/* r14: the map sits a few px lower on desktop, so its top inset (21px) matches its right
+   inset from the card edge. The negative bottom margin keeps the grid rows, and so the card height, unchanged;
+   the map's lower edge moves into the empty right end of the news row. Tablet/phones keep r13's margins. */
+@media (min-width: 1024px) {
+  .ld-map { margin: 21px 20px -5px 0; }
+}
+/* r14: Leaflet tiles at sub-pixel offsets left a hairline seam on hi-DPI screens (seen at 2x); the usual
+   half-pixel overlap closes it. */
+.ld-map .leaflet-tile-container img { width: 256.5px !important; height: 256.5px !important; }
+
+
+/* =====================================================================
+   R13_B: the four motifs leave the map and fill the middle of the card, right above the email and icons.
+     row 1-2   photo | who | motifs over (email over icons) | office map
+     row 3     latest news, the full width
+   Tablet: who / motifs / contact stack beside the map. Phones: who, motifs, contact, map band, news.
+   ===================================================================== */
+.ld-body {
+  grid-template-columns: auto max-content minmax(210px, 1fr) minmax(250px, 27%);
+  grid-template-rows: auto auto auto;
+  grid-template-areas:
+    "photo who motifs  map"
+    "photo who contact map"
+    "news  news news   news";
+}
+.ld-body .hero-avatar { grid-row: 1 / 3; }
+.ld-who { grid-row: 1 / 3; }
+.ld-map { grid-row: 1 / 3; }
+.ld-motifs {
+  align-self: end;
+  height: 62px;
+  margin: 16px 6px 0;
+}
+.ld-contact {
+  align-self: start;
+  justify-self: center;
+  align-items: center;
+  padding-top: 10px;
+}
+/* r14: the copy glyph after the address is invisible at rest but still takes its 0.8rem + 6px, which put
+   the visible address ~10px left of centre. A matching left margin centres the address over the icons
+   (about 9px further right than r13). Tablet and phones reset it below. */
+.ld-contact .id-email { margin-left: calc(0.8rem + 6px); }
+.ld-contact .hero-social-row { margin-left: 0; }
+
+@media (min-width: 1024px) and (max-width: 1099px) {
+  .ld-body { grid-template-columns: auto max-content minmax(190px, 1fr) minmax(250px, 29%); }
+}
+
+/* tablet: the middle is the column under the name, so the motifs stack between who and the contact */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .ld-body {
+    grid-template-columns: auto minmax(0, 1fr) minmax(200px, 34%);
+    grid-template-rows: auto auto auto auto;
+    grid-template-areas:
+      "photo who     map"
+      "photo motifs  map"
+      "photo contact map"
+      "news  news    news";
+  }
+  .ld-body .hero-avatar, .ld-who, .ld-map { grid-row: auto; }
+  .ld-body .hero-avatar { grid-row: 1 / 4; }
+  .ld-map { grid-row: 1 / 4; }
+  .ld-motifs { align-self: start; justify-self: start; width: min(100%, 300px); height: 48px; margin: 10px 0 0 -4px; }
+  .ld-contact { justify-self: start; padding-top: 6px; }
+  .ld-contact .id-email { margin-left: -6px; }
+  .ld-contact .hero-social-row { margin-left: -6px; }
+}
+
+/* phones: who, motifs, email, icons, map band, news */
+@media (max-width: 767px) {
+  .ld-body {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-template-areas:
+      "photo who"
+      "motifs motifs"
+      "contact contact"
+      "map map"
+      "news news";
+  }
+  .ld-body .hero-avatar, .ld-who, .ld-map { grid-row: auto; }
+  .ld-motifs { align-self: auto; height: 56px; margin: 14px -4px 0; }
+  .ld-contact { justify-self: stretch; align-items: flex-start; padding-top: 0; margin-top: 10px; }
+  .ld-contact .id-email { margin-left: -6px; }
+  .ld-contact .hero-social-row { margin-left: -6px; }
+  .ld-news { padding-bottom: 14px; }
+}
+
+/* ===== r14_nav: "Chris" as a sub-pill of team =====
+   The PI card is part of Team, so the nav has no separate "about". A small "Chris" pill is attached to
+   "team": it slides out when Team is the current section, or while team is hovered or focused, and takes
+   the indicator when the PI card is the current section (team then keeps a cobalt tint). The main pill's
+   look is unchanged. (r15: the ?nav=b variant without the sub-pill is gone.)
+   Phones: the bottom bar always shows the small Chris icon next to Team (no hover on touch, and the bar
+   shouldn't change width under a thumb). Scrollspy + click lock: script.js. */
+.nav-team { display: inline-flex; align-items: center; }
+/* collapsed = zero width and no gap, so the pill is symmetric at rest. (0,3,0) to beat style.css's
+   ".nav:not(.nav--scrolled) .nav-link" padding. The hidden arrow likewise cancels the 4px flex gap. */
+.nav:not(.nav--scrolled) .nav-top { margin-right: -4px; }
+.nav .nav-top { transition: max-width 0.35s ease, padding 0.35s ease, margin 0.35s ease, opacity 0.25s ease; }
+.nav .nav-team .nav-sub {
+  max-width: 0;
+  margin-left: 0;
+  padding-left: 0;
+  padding-right: 0;
+  opacity: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--accent-deep);
+  background: rgba(44, 95, 246, 0.09);
+  transition:
+    max-width 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+    padding 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+    margin 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.22s ease,
+    color 0.25s ease,
+    background 0.25s ease;
+}
+.nav .nav-team.is-open .nav-sub,
+.nav .nav-team:hover .nav-sub,
+.nav .nav-team:focus-within .nav-sub {
+  max-width: 5rem;
+  margin-left: 2px;
+  padding: 3px 10px;
+  opacity: 1;
+}
+.nav--scrolled .nav-team.is-open .nav-sub,
+.nav--scrolled .nav-team:hover .nav-sub,
+.nav--scrolled .nav-team:focus-within .nav-sub { font-size: 0.75rem; padding: 2px 9px; }
+.nav .nav-sub:hover { background: rgba(44, 95, 246, 0.14); color: var(--accent-deep); }
+/* active sub-pill: the solid indicator sits under it */
+.nav .nav-sub.active { background: transparent; }
+.nav:not(.indicator-hovering) .nav-sub.active { color: #fff; }
+/* team while its sub-pill is current */
+.nav .nav-link.parent-active { color: var(--accent-deep); }
+
+.mobile-nav-team { display: inline-flex; align-items: center; gap: 0.15rem; }
+.mobile-nav-link.mobile-nav-sub {
+  width: 1.8rem;
+  height: 1.8rem;
+  font-size: 0.78rem;
+  color: var(--accent-deep);
+  background: rgba(44, 95, 246, 0.09);
+}
+.mobile-nav-link.mobile-nav-sub.active { background: transparent; color: #fff; }
+.mobile-nav-link.parent-active { color: var(--accent-deep); }
+/* ===== /r14_nav ===== */
+
+/* ===== Leave notice: a tab on the card's top edge (r14_nav's ?leave=tab; r15: the only version) =====
+   A shallow tab standing on the card's top edge, the way r12_sol's nav hung from its panel's bottom edge:
+   v53's stripes, drift and rocking baby. The stripes live on ::before, masked to a tab with rounded top
+   corners and small concave fillets where it meets the card, so the tab grows out of the card's edge
+   instead of sitting on it. A 1px cobalt outline (drop-shadows on the parent, so it follows the mask).
+   The tab sits in the space above the card.
+   r15 alignment ("doesn't quite align with the top of the card"):
+   - the base covers exactly the card's 1px top border (bottom: 100% of the card's padding box), so the
+     stripes run straight into the card and the fillet tails land on its edge. r14 sat 2px into the card,
+     so the fillets dipped below the edge and the card's edge line stepped against them;
+   - centred with auto margins instead of translateX(-50%): the sub-pixel transform resampled the filtered
+     layer, which doubled the side outline on 2x screens;
+   - the side outlines also drew a short dash past each fillet tail along the card's edge; clip-path keeps
+     the last 1px row to the tab's own width (the shadow above and beside it is untouched). */
+/* The card's top is kept on a whole pixel (3.4vh is fractional), so the tab's masked base and the card's
+   pixel-snapped border meet on the same device-pixel row instead of leaving a half-covered pale row. */
+.band-wrap { --band-top: clamp(14px, 3.4vh, 40px); padding-top: calc(var(--band-top) + 22px); }
+@supports (width: round(1.5px, 1px)) {
+  .band-wrap { --band-top: round(clamp(14px, 3.4vh, 40px), 1px); }
+}
+.leave-stripe {
+  --tab-f: 12px;  /* fillet */
+  --tab-r: 13px;  /* top corner radius */
+  position: absolute;
+  z-index: 1;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  width: max-content;
+  max-width: calc(100% - 4rem); /* r15: the fillets must land on the straight edge, clear of the 2rem corners */
+  padding: 0 var(--tab-f);
+  text-align: center;
+  filter:
+    drop-shadow(0 -1px 0 rgba(95, 130, 255, 0.6))
+    drop-shadow(1px 0 0 rgba(95, 130, 255, 0.6))
+    drop-shadow(-1px 0 0 rgba(95, 130, 255, 0.6))
+    drop-shadow(0 -4px 8px rgba(16, 26, 91, 0.1));
+  clip-path: polygon(-32px -32px, calc(100% + 32px) -32px, calc(100% + 32px) calc(100% - 1px), 100% calc(100% - 1px),
+                     100% 100%, 0 100%, 0 calc(100% - 1px), -32px calc(100% - 1px));
+}
+.leave-stripe::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: repeating-linear-gradient(135deg, #f6ffdc 0 16px, #e3fb9b 16px 32px);
+  animation: leave-drift 7s linear infinite;
+  -webkit-mask:
+    radial-gradient(circle at 0 0, transparent calc(var(--tab-f) - 0.5px), #000 var(--tab-f)) left bottom / calc(var(--tab-f) + 1px) var(--tab-f) no-repeat,
+    radial-gradient(circle at 100% 0, transparent calc(var(--tab-f) - 0.5px), #000 var(--tab-f)) right bottom / calc(var(--tab-f) + 1px) var(--tab-f) no-repeat,
+    radial-gradient(circle at var(--tab-r) var(--tab-r), #000 calc(var(--tab-r) - 0.5px), transparent var(--tab-r)) var(--tab-f) 0 / calc(2 * var(--tab-r)) calc(2 * var(--tab-r)) no-repeat,
+    radial-gradient(circle at var(--tab-r) var(--tab-r), #000 calc(var(--tab-r) - 0.5px), transparent var(--tab-r)) right var(--tab-f) top 0 / calc(2 * var(--tab-r)) calc(2 * var(--tab-r)) no-repeat,
+    linear-gradient(#000, #000) center top / calc(100% - 2 * var(--tab-f) - 2 * var(--tab-r)) 100% no-repeat,
+    linear-gradient(#000, #000) center bottom / calc(100% - 2 * var(--tab-f)) calc(100% - var(--tab-r)) no-repeat;
+  mask:
+    radial-gradient(circle at 0 0, transparent calc(var(--tab-f) - 0.5px), #000 var(--tab-f)) left bottom / calc(var(--tab-f) + 1px) var(--tab-f) no-repeat,
+    radial-gradient(circle at 100% 0, transparent calc(var(--tab-f) - 0.5px), #000 var(--tab-f)) right bottom / calc(var(--tab-f) + 1px) var(--tab-f) no-repeat,
+    radial-gradient(circle at var(--tab-r) var(--tab-r), #000 calc(var(--tab-r) - 0.5px), transparent var(--tab-r)) var(--tab-f) 0 / calc(2 * var(--tab-r)) calc(2 * var(--tab-r)) no-repeat,
+    radial-gradient(circle at var(--tab-r) var(--tab-r), #000 calc(var(--tab-r) - 0.5px), transparent var(--tab-r)) right var(--tab-f) top 0 / calc(2 * var(--tab-r)) calc(2 * var(--tab-r)) no-repeat,
+    linear-gradient(#000, #000) center top / calc(100% - 2 * var(--tab-f) - 2 * var(--tab-r)) 100% no-repeat,
+    linear-gradient(#000, #000) center bottom / calc(100% - 2 * var(--tab-f)) calc(100% - var(--tab-r)) no-repeat;
+}
+html[data-palette="teal"] .leave-stripe::before {
+  background: repeating-linear-gradient(135deg, #e6fbf6 0 16px, #bfeee3 16px 32px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .leave-stripe::before { animation: none; }
+}
+.leave-pad { padding: 5px 16px 5px; white-space: nowrap; }
+.leave-title { font-size: 13px; }
+.leave-note { font-size: 12px; }
+@media (max-width: 767px) {
+  .band-wrap { padding-top: calc(var(--band-top) + 20px); }
+  .leave-stripe { --tab-f: 10px; --tab-r: 11px; max-width: calc(100% - 3.2rem); } /* 1.6rem corners */
+  .leave-pad { padding: 5px 12px; }
+  .leave-title { font-size: 12px; }
+  .leave-note { font-size: 11px; }
+}
+/* two short lines below 640px: one line (~540px) no longer fits between the card's rounded corners
+   (r14_nav switched at 480px, so between 481 and ~620px the fillets sat on the corners) */
+@media (max-width: 639px) {
+  .band-wrap { padding-top: calc(var(--band-top) + 34px); }
+  .leave-pad { padding: 4px 14px 3px; line-height: 1.35; }
+  .leave-sep, .leave-thanks { display: none; }
+  .leave-note { display: block; }
+}
+/* ===== /leave tab ===== */
+
+/* ===== Phone header (r14_nav; r15 identity block) =====
+   r14_nav: the identity reads left to right at the top, and everything under it is centred on the card's
+   axis (the motifs, then the email over the icons as one block). Map and news stay full width.
+   r15 (Chris: "a very odd gap between Associate Professor and the Department of Mathematics line"): the
+   department and the U logo join the text column beside the photo, as the usual mobile profile stack
+   (name / position / department / logo), instead of a centred row under it. The column is now as tall as
+   the photo or taller, so nothing hangs beside the photo and there is no lone centred line to leave a gap.
+   The logo sits on its own line at every phone width (no divider), so the stack never changes shape. */
+@media (max-width: 767px) {
+  .ld-body {
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+      "photo who"
+      "motifs motifs"
+      "contact contact"
+      "map map"
+      "news news";
+  }
+  .ld-body .hero-avatar { grid-area: photo; align-self: center; margin: 18px 0 0; }
+  .ld-who { grid-area: who; align-self: center; padding-top: 18px; }
+  .ld-who .id-name { margin: 0; }
+  .ld-who .id-pos { margin-top: 2px; }
+  .ld-aff {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    margin-top: 4px;
+  }
+  .ld-dept { font-size: 0.9rem; }
+  .ld-aff .utah-logo-link { height: 26px; padding-left: 0; border-left: 0; }
+  .ld-motifs { margin-top: 14px; }
+  .ld-contact { justify-self: center; align-items: center; margin-top: 8px; }
+  /* the invisible copy glyph trails the address; balance it so the visible address is centred */
+  .ld-contact .id-email { margin-left: calc(0.8rem + 6px); }
+  .ld-contact .hero-social-row { margin-left: 0; }
+}
+@media (max-width: 374px) {
+  .ld-dept { font-size: 0.84rem; }
+  .ld-aff .utah-logo-link { height: 24px; }
+}
+/* ===== /phone header ===== */
+
+/* ===== r16: phone vertical rhythm =====
+   Chris (r15): "awkward spacing ... vertically on mobile for the header card, between the elements"; the gaps
+   "don't seem to group things or have consistent spacing". The card now has four groups, identity / motifs /
+   contact (email, icons, map) / news, spaced on one scale of visible gaps (ink to ink, not box to box):
+     18px  the card's top and bottom insets (= its side inset) and every gap between groups
+      9px  between items inside a group (name / affiliation; email / icons / map; news / older news)
+      4px  inside the affiliation unit: "Associate Professor" over "Department of Mathematics"
+   The values below were tuned in Playwright to hit those visible gaps at 320-430px. */
+@media (max-width: 767px) {
+  .ld-body .hero-avatar { margin: 0; }
+  .ld-who { padding-top: 0; }
+  .ld-body { padding-top: 13px; }
+  /* identity: the role belongs to the department, not to the name */
+  .ld-who .id-pos { margin-top: 6px; line-height: 1.25; }
+  .ld-aff { margin-top: -3px; gap: 8px; }
+  .ld-dept { line-height: 1.25; }
+  /* motifs */
+  .ld-motifs { margin-top: 17px; margin-bottom: 0; }
+  /* contact: email, icons, map */
+  .ld-contact { margin-top: 10px; gap: 0; }
+  .ld-contact .hero-social-row { margin-top: -1px; }
+  .ld-map { margin-top: 1px; }
+  /* news */
+  .ld-news { padding: 17px 0 10px; row-gap: 0; }
+}
+/* ===== /r16 ===== */
+
+/* ===== r16_c: the square U logo on phones =====
+   Chris (r16_a): the phone header "doesn't look horrible ... just a bit odd still since the logo is small and
+   creates a big gap" (the horizontal logo alone on a line under the department). His idea: on phones only, use
+   the square (centred) U logo, inlined and styled like the horizontal one (currentColor, the U turns red on
+   hover). It sits to the right of the role and department as one affiliation lockup:
+       Associate Professor   [U]
+       Department of         [U]
+       Mathematics           [U]
+   The department breaks after "of" on phones (a <br> that is hidden elsewhere), so the text is three lines and
+   the logo can be as tall as their ink (46px, about 40px wide); its "UTAH" is then 7.6px tall, a little larger
+   than the horizontal logo's 6.8px at 26px. Below 375px "Associate Professor" does not fit beside it and breaks too (four lines).
+   Tablet and desktop never show the square logo or the break. */
+.utah-svg-sq, .ld-dept-br { display: none; }
+@media (max-width: 767px) {
+  .ld-aff .utah-svg { display: none; }
+  .ld-aff .utah-svg-sq, .ld-dept-br { display: block; }
+  .ld-who {
+    display: grid;
+    /* the empty 1fr track keeps the spanning name out of the column sizing, so the logo follows the text */
+    grid-template-columns: minmax(0, max-content) auto 1fr;
+    grid-template-areas:
+      "name name name"
+      "pos  logo ."
+      "dept logo .";
+    column-gap: 0;
+  }
+  .ld-aff { display: contents; }
+  .ld-who .id-name { grid-area: name; }
+  .ld-who .id-pos { grid-area: pos; }
+  .ld-dept { grid-area: dept; margin-top: -3px; }   /* the 4px unit gap, as .ld-aff's margin did */
+  /* centred on the text's ink (role cap height to the department's last baseline), 12px from the role */
+  .ld-aff .utah-logo-link { grid-area: logo; align-self: center; height: auto; margin-left: 12px; position: relative; top: 2.5px; }
+  .ld-aff .utah-svg-sq { height: 46px; width: auto; }
+  /* Vertical insets: from 383px the name fits on one line and the text is shorter than the photo, so the photo
+     sets the 18px top inset and the gap to the motifs (r16_b's values). Narrower, the text is taller and sets
+     them, as in r16_a. The negative margins trim the column's box to its ink (2px inside the name's cap
+     line, like the photo's ring, and 6px inside the department's baseline), so whichever is taller lands on
+     the same 18px inset and, below it, 18px to the motifs, with no breakpoint for where the name wraps. */
+  .ld-body { padding-top: 19px; }
+  .ld-who { margin: -6px 0 -9px; }
+  .ld-motifs { margin-top: 23px; }
+}
+@media (max-width: 374px) {
+  .ld-who .id-pos { width: min-content; }   /* "Associate / Professor", so the logo stays 12px from the text */
+}
+/* ===== /r16_c ===== */
+
+/* ===== r16_e: two-by-two lockup, one leading =====
+   Chris (r16_c): "Department of / Mathematics" looked bad because the space between its two lines was bigger
+   than the gap from "Associate Professor" to it; the 360px version read better because both were two lines,
+   but the logo was too small and left a big gap to its right. So phones always set the role and the
+   department as two lines each, on one 18px leading (even spacing across all four lines), with the U logo
+   as tall as the four lines beside them:
+       Associate        [U]
+       Professor        [U]
+       Department of    [U]
+       Mathematics      [U]
+   Tablet and desktop are unchanged. */
+@media (max-width: 767px) {
+  .ld-who .id-pos { width: min-content; }
+  .ld-who .id-pos, .ld-dept { line-height: 18px; }
+  .ld-dept { margin-top: 0; }
+  .ld-aff .utah-svg-sq { height: 64px; }
+  .ld-aff .utah-logo-link { top: 2px; }
+}
+@media (max-width: 345px) {
+  .ld-aff .utah-svg-sq { height: 50px; }
+  .ld-aff .utah-logo-link { margin-left: 10px; }
+}
+/* ===== /r16_e ===== */
+
+/* ===== r16_f: the U right-aligned =====
+   Chris (r16_e): "the logo should be pushed farther right on mobile. there's an odd gap to the right of it".
+   The U now sits on the card's right inner edge (the same inset as the photo on the left), with the free space
+   between the text and the logo instead of after it. Its minimum distance from the text stays 12px. */
+@media (max-width: 767px) {
+  .ld-who {
+    grid-template-columns: minmax(0, max-content) 1fr auto;
+    grid-template-areas:
+      "name name name"
+      "pos  .    logo"
+      "dept .    logo";
+  }
+}
+/* Chris (r16_e at 360): the name wrapping (Christopher / E. Miles) looks odd. Below 383px the one-line name
+   (213px at 1.45rem) no longer fits beside the photo, so its size now follows the column (the name is about
+   9.2 ems wide and the column is the viewport minus 170px) down to 1.2rem: one line from 340px up, e.g.
+   20.2px at 360 and 21.9px at 375. 320 still wraps. */
+@media (max-width: 767px) {
+  .ld-who .id-name { font-size: clamp(1.2rem, calc((100vw - 172px) / 9.3), 1.45rem); }
+}
+/* ===== /r16_f ===== */

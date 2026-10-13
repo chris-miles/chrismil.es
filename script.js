@@ -789,7 +789,7 @@ const barW = histW / sharedHistData.bins.length;
   return { reset, update, draw };
 }
 
-function createUnifiedAnimator(rng) {
+function createUnifiedAnimator(rng, canvasEl) {
   let width = 1;
   let height = 1;
   let time = 0;
@@ -839,8 +839,15 @@ function createUnifiedAnimator(rng) {
     var count = 4;
     var pad = 2;
     var gap = 4;
-    var usable = width - 2 * pad;
-    var slotW = usable / count;
+    // r11_opus: an optional empty middle (CSS --motif-gap on the canvas) leaves room for the attached nav;
+    // two motifs sit on each side of it. With no gap this is the old even row of four.
+    var midGap = 0;
+    if (canvasEl && window.getComputedStyle) {
+      midGap = parseFloat(getComputedStyle(canvasEl).getPropertyValue("--motif-gap")) || 0;
+    }
+    midGap = Math.max(0, Math.min(midGap, width * 0.6));
+    var half = (width - 2 * pad - midGap) / 2;
+    var slotW = half / 2;
     var itemH = height - 2 * pad;
     // cap width so motifs never get wider than 1.3x their height (prevents pancaking)
     var itemW = Math.min(slotW - gap, itemH * 1.3);
@@ -849,7 +856,7 @@ function createUnifiedAnimator(rng) {
     var opacities = [0.9, 0.9, 0.86, 0.92];
 
     for (var i = 0; i < count; i++) {
-      var cx = pad + slotW * (i + 0.5);
+      var cx = pad + (i < 2 ? 0 : half + midGap) + slotW * ((i % 2) + 0.5);
 
       items.push({
         kind: kinds[i],
@@ -1419,11 +1426,11 @@ function drawHist(ctx, item) {
   };
 }
 
-function createAnimator(type, rng) {
+function createAnimator(type, rng, canvasEl) {
   if (type === "gene") return createSpatialGenomicsAnimator(rng);
   if (type === "cyto") return createCytoskeletonAnimator(rng);
   if (type === "network") return createSciMLAnimator(rng);
-  if (type === "unified") return createUnifiedAnimator(rng);
+  if (type === "unified") return createUnifiedAnimator(rng, canvasEl);
   return null;
 }
 
@@ -1433,7 +1440,7 @@ function initCanvas(canvasEl, type) {
 
   const seed = hashString(type + "::" + (canvasEl.id || "canvas") + "::" + Date.now());
   const rng = makeRng(seed);
-  const animator = createAnimator(type, rng);
+  const animator = createAnimator(type, rng, canvasEl);
 
   if (!animator) return;
 
@@ -1570,52 +1577,57 @@ function initContactMaps() {
       el._leaflet_id = null;
     }
 
+    var ZOOM = 16;
     var map = L.map(el, {
       zoomControl: false,
       scrollWheelZoom: false,
-      attributionControl: false,
+      dragging: false,
+      doubleClickZoom: false,
+      boxZoom: false,
+      touchZoom: false,
+      attributionControl: true,
       keyboard: false,
-    }).setView([lat, lng], 15);
+    }).setView([lat, lng], ZOOM);
+    map.attributionControl.setPrefix(false);
 
-    L.tileLayer(
-      "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-      {
-        subdomains: "abcd",
-        maxZoom: 20,
-      },
-    ).addTo(map);
+    // r10_d tiles. CARTO's basemaps now answer every request with an "API KEY REQUIRED" image (status 200),
+    // and tile.openstreetmap.org answers "Access blocked" when no Referer is sent (e.g. a page opened from
+    // disk). Esri's World Light Gray Canvas needs no key or referer: a quiet grey base (finest native zoom
+    // 16) that the #map-tint SVG filter in index.html recolours to pale cobalt (see r9_header.css).
+    // Attribution is plain text because the whole tile is one Google Maps link.
+    L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+      maxNativeZoom: 16,
+      maxZoom: 19,
+      attribution: "Esri, HERE, Garmin, &copy; OpenStreetMap",
+    }).addTo(map);
 
+    // office marker: a cobalt dot with a white ring and a soft cobalt halo, matching the "106 LCB" label
     L.circle([lat, lng], {
-      color: "#1a35a8",
-      fillColor: "#1a35a8",
-      fillOpacity: 0.2,
-      radius: 60,
+      color: "#2c5ff6",
+      weight: 1,
+      opacity: 0.35,
+      fillColor: "#2c5ff6",
+      fillOpacity: 0.14,
+      radius: 34,
+      interactive: false,
     }).addTo(map);
 
     var officeMarker = L.circleMarker([lat, lng], {
-      radius: 6,
-      fillColor: "#1a35a8",
-      color: "#101a5b",
-      weight: 2,
+      radius: 6.5,
+      fillColor: "#2c5ff6",
+      color: "#ffffff",
+      weight: 2.5,
       opacity: 1,
       fillOpacity: 1,
-    })
-      .addTo(map)
-      .bindPopup("Office: 106 LeRoy Cowles Bldg (LCB)", {
-        closeButton: false,
-        closeOnClick: false,
-        autoClose: false,
-        className: "map-label",
-        offset: [0, -4],
-      })
-      .openPopup();
+      interactive: false,
+    }).addTo(map);
 
     var mapHoverTarget = el.closest("[data-map-hover]");
     if (mapHoverTarget) {
       var setMarkerHover = function (isHovered) {
         officeMarker.setStyle({
-          fillColor: isHovered ? "#b8f200" : "#1a35a8",
-          color: isHovered ? "#6d9200" : "#101a5b",
+          fillColor: isHovered ? "#b8f200" : "#2c5ff6",
+          color: isHovered ? "#101a5b" : "#ffffff",
         });
       };
 
@@ -1635,16 +1647,30 @@ function initContactMaps() {
       });
     }
 
-    // The hero cards are items-stretch, so the Latest News toggle in the right
-    // card changes this map's frame height without firing a window resize --
-    // which is all Leaflet's trackResize watches. Without this the map keeps its
-    // old size and leaves a blank band. invalidateSize() takes no options on
-    // purpose: the default pan:true is what keeps the office marker centred.
-    if (typeof ResizeObserver !== "undefined") {
-      new ResizeObserver(function () {
-        map.invalidateSize();
-      }).observe(el);
+    // r10_d: the lander grid resizes this container (breakpoints, ?layout=column, late fonts) without
+    // always firing a window resize, which is all Leaflet watches. Re-measure and re-centre on the
+    // office whenever the container changes size, once fonts are in, and after load.
+    var refitQueued = false;
+    function refit() {
+      if (refitQueued) return;
+      refitQueued = true;
+      requestAnimationFrame(function () {
+        refitQueued = false;
+        if (!el.offsetWidth || !el.offsetHeight) return;
+        map.invalidateSize({ pan: false });
+        map.setView([lat, lng], ZOOM, { animate: false });
+        // r11_opus: the lander map fades in from its left edge, so centre the office in the solid part
+        // (CSS --map-shift-x on the map tile = how far right of the box centre the marker should sit).
+        var shift = parseFloat(getComputedStyle(el).getPropertyValue("--map-shift-x")) || 0;
+        if (shift) map.panBy([-shift, 0], { animate: false });
+      });
     }
+    if (typeof ResizeObserver !== "undefined") {
+      new ResizeObserver(refit).observe(el);
+    }
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(refit);
+    window.addEventListener("load", refit);
+    window.addEventListener("resize", refit);
   });
 }
 
@@ -1797,176 +1823,32 @@ document.addEventListener("DOMContentLoaded", function () {
   initContactMaps();
 
 
-  // Hero News toggle
-  var newsHeroBtn = document.getElementById("news-toggle-hero");
-  var newsHeroHidden = document.querySelectorAll(".hidden-news-hero");
-
-  if (newsHeroBtn) {
-    newsHeroBtn.addEventListener("click", function (e) {
-      e.preventDefault();
-      var isHidden =
-        newsHeroHidden[0] && newsHeroHidden[0].classList.contains("hidden");
-
-      newsHeroHidden.forEach(function (el) {
-        el.classList.toggle("hidden");
-      });
-
-      newsHeroBtn.textContent = isHidden ? "View Less" : "View All";
-      haptics.light();
-
-      rebuildSectionOffsets();
-      if (typeof updateNav === "function") updateNav();
-    });
-  }
-
-  // Publications toggle
-  var pubsBtn = document.getElementById("pubs-toggle");
-  var pubsHidden = document.querySelectorAll(".pub-item.hidden-item");
-  var floatingCollapseBtn = document.getElementById("floating-collapse");
-  let pubsExpanded = false;
-  var setPubsButtonState = function (expanded) {
-    if (!pubsBtn) return;
-    pubsBtn.setAttribute("aria-expanded", expanded ? "true" : "false");
-    pubsBtn.innerHTML = expanded
-      ? '<span>Show Less</span><i class="fas fa-chevron-up text-[11px]" aria-hidden="true"></i>'
-      : '<span>Show All</span><i class="fas fa-chevron-down text-[11px]" aria-hidden="true"></i>';
-  };
-
-  if (pubsBtn) {
-    setPubsButtonState(false);
-    pubsBtn.addEventListener("click", function () {
-      var isHidden =
-        pubsHidden[0] &&
-        pubsHidden[0].classList.contains("hidden-item-collapsed");
-      pubsHidden.forEach(function (el) {
-        el.classList.toggle("hidden-item-collapsed");
-      });
-      pubsExpanded = isHidden;
-      setPubsButtonState(pubsExpanded);
-      haptics.medium();
-
-      rebuildSectionOffsets();
-      if (typeof updateNav === "function") updateNav();
-    });
-  }
-
-  if (floatingCollapseBtn) {
-    floatingCollapseBtn.addEventListener("click", function () {
-      pubsHidden.forEach(function (el) {
-        el.classList.add("hidden-item-collapsed");
-      });
-      pubsExpanded = false;
-      setPubsButtonState(false);
-
-      const pubsSection = document.getElementById("publications");
-      if (pubsSection) {
-        pubsSection.scrollIntoView({ behavior: "smooth" });
-      }
-      haptics.medium();
-
-      floatingCollapseBtn.classList.add(
-        "opacity-0",
-        "pointer-events-none",
-        "translate-y-10",
-      );
-      floatingCollapseBtn.classList.remove(
-        "opacity-100",
-        "pointer-events-auto",
-        "translate-y-0",
-      );
-    });
-  }
-
-  // Group tabs
-  var tabCurrent = document.getElementById("tab-current");
-  var tabAlumni = document.getElementById("tab-alumni");
-  var gridCurrent = document.getElementById("grid-current");
-  var gridAlumni = document.getElementById("grid-alumni");
-  if (tabCurrent && tabAlumni) {
-    tabCurrent.addEventListener("click", function () {
-      tabCurrent.classList.remove(
-        "text-gray-500",
-        "hover:text-[#2c5ff6]",
-        "bg-transparent",
-        "shadow-none",
-      );
-      tabCurrent.classList.add(
-        "bg-[#2c5ff6]",
-        "text-white",
-        "shadow-[0_2px_12px_rgba(184,242,0,0.22),0_1px_6px_rgba(44,95,246,0.3)]",
-      );
-
-      tabAlumni.classList.add(
-        "text-gray-500",
-        "hover:text-[#2c5ff6]",
-        "bg-transparent",
-        "shadow-none",
-      );
-      tabAlumni.classList.remove(
-        "bg-[#2c5ff6]",
-        "text-white",
-        "shadow-sm",
-        "border-b-2",
-        "border-[#b8f200]/50",
-        "shadow-[0_2px_12px_rgba(184,242,0,0.22),0_1px_6px_rgba(44,95,246,0.3)]",
-      );
-
-      gridCurrent.style.display = "grid";
-      gridAlumni.style.display = "none";
-      gridCurrent.classList.remove("hidden");
-      gridAlumni.classList.add("hidden");
-      haptics.selection();
-
-      rebuildSectionOffsets();
-      if (typeof updateNav === "function") updateNav();
-    });
-    tabAlumni.addEventListener("click", function () {
-      tabAlumni.classList.remove(
-        "text-gray-500",
-        "hover:text-[#2c5ff6]",
-        "bg-transparent",
-        "shadow-none",
-      );
-      tabAlumni.classList.add(
-        "bg-[#2c5ff6]",
-        "text-white",
-        "shadow-[0_2px_12px_rgba(184,242,0,0.22),0_1px_6px_rgba(44,95,246,0.3)]",
-      );
-
-      tabCurrent.classList.add(
-        "text-gray-500",
-        "hover:text-[#2c5ff6]",
-        "bg-transparent",
-        "shadow-none",
-      );
-      tabCurrent.classList.remove(
-        "bg-[#2c5ff6]",
-        "text-white",
-        "shadow-sm",
-        "border-b-2",
-        "border-[#b8f200]/50",
-        "shadow-[0_2px_12px_rgba(184,242,0,0.22),0_1px_6px_rgba(44,95,246,0.3)]",
-      );
-
-      gridAlumni.style.display = "grid";
-      gridCurrent.style.display = "none";
-      gridAlumni.classList.remove("hidden");
-      gridCurrent.classList.add("hidden");
-      haptics.selection();
-
-      rebuildSectionOffsets();
-      if (typeof updateNav === "function") updateNav();
-    });
-  }
-
   // Publication/resource link feedback (user-initiated only)
-  document.querySelectorAll(".pub-action-pill[href]").forEach(function (link) {
+  document.querySelectorAll(".act[href]").forEach(function (link) {
     link.addEventListener("click", function () {
       var href = link.getAttribute("href") || "";
       if (/\.pdf($|[?#])/i.test(href)) {
         haptics.success();
       }
     });
+  });
+
+  // r14_nav: a nav click holds the scrollspy on its target until the user scrolls by hand. Team and the PI
+  // card can end at the same (clamped) scroll position at the page bottom, so position alone can't tell
+  // which one was asked for; the smooth scroll also no longer flicks the highlight through every section.
+  var spyLock = null;
+  function releaseSpyLock() {
+    if (!spyLock) return;
+    spyLock = null;
+    if (typeof onScrollNav === "function") onScrollNav();
+  }
+  window.addEventListener("wheel", releaseSpyLock, { passive: true });
+  window.addEventListener("touchstart", releaseSpyLock, { passive: true });
+  window.addEventListener("keydown", function (e) {
+    if (/^(ArrowUp|ArrowDown|PageUp|PageDown|Home|End| )$/.test(e.key)) releaseSpyLock();
+  });
+  window.addEventListener("pointerdown", function (e) {
+    if (!(e.target.closest && e.target.closest(".nav-link, .mobile-nav-link"))) releaseSpyLock();
   });
 
   // Smooth scroll for nav links
@@ -1982,6 +1864,8 @@ document.addEventListener("DOMContentLoaded", function () {
         var isDesktopNavLink = a.classList.contains("nav-link");
         if (isMobileNavLink || isDesktopNavLink) {
           haptics.selection();
+          spyLock = href.slice(1);
+          updateNav();
         }
         target.scrollIntoView({ behavior: "smooth" });
         if (window.location.hash !== href) {
@@ -1997,10 +1881,12 @@ document.addEventListener("DOMContentLoaded", function () {
   const allSections = document.querySelectorAll("section, header");
   const navLinks = nav ? nav.querySelectorAll(".nav-link") : [];
   const mobileNavLinks = document.querySelectorAll(".mobile-nav-link");
+  const navTeam = nav ? nav.querySelector(".nav-team") : null;
 
   // --- Sliding Nav Indicator (Desktop) ---
   var navIndicator = document.getElementById("nav-indicator");
   var navHovered = false; // true while mouse is over a nav link
+  var navHoverLink = null;
 
   function positionIndicator(targetLink, indicator, container) {
     if (!targetLink || !indicator || !container) return;
@@ -2042,11 +1928,11 @@ document.addEventListener("DOMContentLoaded", function () {
   // Keep indicator aligned during nav morph transition and window resize
   if (nav && navIndicator && window.ResizeObserver) {
     var navResizeObserver = new ResizeObserver(function () {
-      if (!navHovered && navIndicator) {
-        var activeLink = nav.querySelector(".nav-link.active");
-        if (activeLink) {
-          positionIndicator(activeLink, navIndicator, nav);
-        }
+      if (!navIndicator) return;
+      // r14_nav: the team sub-pill slides out on hover, which moves the hovered link; follow it
+      var activeLink = navHovered ? navHoverLink : nav.querySelector(".nav-link.active");
+      if (activeLink) {
+        positionIndicator(activeLink, navIndicator, nav);
       }
     });
     navResizeObserver.observe(nav);
@@ -2059,6 +1945,7 @@ document.addEventListener("DOMContentLoaded", function () {
     navLinks.forEach(function (link) {
       link.addEventListener("mouseenter", function () {
         navHovered = true;
+        navHoverLink = link;
         var isActive = link.classList.contains("active");
         positionIndicator(link, navIndicator, nav);
         navIndicator.classList.add("visible");
@@ -2093,8 +1980,18 @@ document.addEventListener("DOMContentLoaded", function () {
     var cRect = mobileNavInner.getBoundingClientRect();
     var tRect = activeLink.getBoundingClientRect();
     var originX = cRect.left + mobileNavInner.clientLeft;
-    mobileIndicator.style.transform =
-      "translateX(" + (tRect.left - originX) + "px) translateY(-50%)";
+    // r14_nav: the Chris sub-pill is smaller than the other icons, so the indicator takes the link's size
+    var x = tRect.left - originX;
+    if (mobileIndicator._lastTarget === activeLink && Math.abs(x - (mobileIndicator._lastX || 0)) > 0.1) {
+      mobileIndicator.style.transition = "none"; // same target, layout shift: snap
+    } else {
+      mobileIndicator.style.transition = "";
+    }
+    mobileIndicator._lastTarget = activeLink;
+    mobileIndicator._lastX = x;
+    mobileIndicator.style.width = tRect.width + "px";
+    mobileIndicator.style.height = tRect.height + "px";
+    mobileIndicator.style.transform = "translateX(" + x + "px) translateY(-50%)";
     mobileIndicator.classList.add("visible");
   }
 
@@ -2104,17 +2001,65 @@ document.addEventListener("DOMContentLoaded", function () {
   var cachedSectionOffsets = [];
   function rebuildSectionOffsets() {
     cachedSectionOffsets = [];
+    var sy = window.pageYOffset;
     allSections.forEach(function (section) {
       if (!section || !section.id) return;
-      cachedSectionOffsets.push({ id: section.id, top: section.offsetTop });
+      var up = section.parentElement && section.parentElement.closest("section[id], header[id]");
+      cachedSectionOffsets.push({
+        id: section.id,
+        top: section.getBoundingClientRect().top + sy,
+        parent: up ? up.id : "", // r14_nav: #about sits inside #group
+      });
     });
   }
+  function sectionChain(id) {
+    var chain = [];
+    while (id) {
+      chain.push(id);
+      var o = null;
+      for (var i = 0; i < cachedSectionOffsets.length; i++) {
+        if (cachedSectionOffsets[i].id === id) o = cachedSectionOffsets[i];
+      }
+      id = o ? o.parent : "";
+    }
+    return chain;
+  }
+  // r14_nav: mark the deepest section that has a link in this nav as "active" and its ancestors that have
+  // links as "parent-active" (team stays tinted while its Chris sub-pill holds the indicator).
+  function markLinks(links, chain) {
+    var hrefs = [];
+    links.forEach(function (l) { hrefs.push(l.getAttribute("href")); });
+    var activeIdx = -1;
+    for (var i = 0; i < chain.length; i++) {
+      if (hrefs.indexOf("#" + chain[i]) >= 0) { activeIdx = i; break; }
+    }
+    links.forEach(function (l) {
+      var k = chain.indexOf(l.getAttribute("href").slice(1));
+      l.classList.toggle("active", k >= 0 && k === activeIdx);
+      l.classList.toggle("parent-active", k > activeIdx && activeIdx >= 0);
+    });
+  }
+  // r8: expose so the papers filter / disclosures (separate handler below) can
+  // refresh the scrollspy after they change section heights.
+  window.rebuildSectionOffsets = function () {
+    rebuildSectionOffsets();
+    updateNav();
+  };
   rebuildSectionOffsets();
   window.addEventListener("resize", rebuildSectionOffsets, { passive: true });
 
   function getCurrentSectionId() {
     let current = "";
     const viewportProgress = window.pageYOffset + window.innerHeight * 0.35;
+    // r14_nav: a clicked nav target wins until the user scrolls by hand (see spyLock).
+    if (spyLock) {
+      for (let j = 0; j < cachedSectionOffsets.length; j++) {
+        if (cachedSectionOffsets[j].id === spyLock) return spyLock;
+      }
+    }
+    // r14_nav: r8's "scrolled to the very end = last section" rule is gone. About now lives inside Team, so
+    // at the page bottom it lit "about" while Team was still being read. Team's top always reaches the
+    // 35% line before the page ends, so the plain reading line is enough.
     for (let i = 0; i < cachedSectionOffsets.length; i++) {
       if (viewportProgress >= cachedSectionOffsets[i].top) {
         current = cachedSectionOffsets[i].id;
@@ -2126,21 +2071,17 @@ document.addEventListener("DOMContentLoaded", function () {
   function updateNav() {
     // --- Read phase: all layout reads grouped up front. ---
     const currentSection = getCurrentSectionId();
+    const chain = sectionChain(currentSection);
     const navWrapperTop =
       nav && navWrapper ? navWrapper.getBoundingClientRect().top : 0;
     const isScrolled = nav && navWrapper ? navWrapperTop <= 17 : false;
-    const isPubsSection = currentSection === "publications";
 
     // --- Write phase: class toggles + indicator reposition. ---
     if (nav && navWrapper) {
       nav.classList.toggle("nav--scrolled", isScrolled);
 
-      navLinks.forEach((link) => {
-        link.classList.toggle(
-          "active",
-          link.getAttribute("href") === "#" + currentSection,
-        );
-      });
+      markLinks(navLinks, chain);
+      if (navTeam) navTeam.classList.toggle("is-open", chain.indexOf("group") >= 0);
 
       if (!navHovered && navIndicator) {
         navIndicator.classList.remove("hover-away");
@@ -2155,40 +2096,10 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     }
 
-    mobileNavLinks.forEach((link) => {
-      link.classList.toggle(
-        "active",
-        link.getAttribute("href") === "#" + currentSection,
-      );
-    });
+    markLinks(mobileNavLinks, chain);
 
     positionMobileIndicator();
 
-    if (floatingCollapseBtn) {
-      if (pubsExpanded && isPubsSection) {
-        floatingCollapseBtn.classList.remove(
-          "opacity-0",
-          "pointer-events-none",
-          "translate-y-10",
-        );
-        floatingCollapseBtn.classList.add(
-          "opacity-100",
-          "pointer-events-auto",
-          "translate-y-0",
-        );
-      } else {
-        floatingCollapseBtn.classList.add(
-          "opacity-0",
-          "pointer-events-none",
-          "translate-y-10",
-        );
-        floatingCollapseBtn.classList.remove(
-          "opacity-100",
-          "pointer-events-auto",
-          "translate-y-0",
-        );
-      }
-    }
   }
 
   // rAF-throttle scroll: coalesces every 120-Hz touch tick into one frame.
@@ -2220,76 +2131,7 @@ document.addEventListener("DOMContentLoaded", function () {
       .catch(function () {});
   }
 
-  // Group photo carousel
-  var carouselIdx = 0;
-  var slides = document.querySelectorAll("#group-carousel .carousel-slide");
-  var dots = document.querySelectorAll("#group-carousel .carousel-dot");
-  var autoTimer = null;
-
-  function showSlide(i) {
-    carouselIdx = ((i % slides.length) + slides.length) % slides.length;
-    slides.forEach(function (s, j) {
-      s.style.opacity = j === carouselIdx ? "1" : "0";
-    });
-    dots.forEach(function (d, j) {
-      var span = d.querySelector("span");
-      if (!span) return;
-      var active = j === carouselIdx;
-      span.style.opacity = active ? "1" : "0.45";
-      span.style.transform = active ? "scale(1.25)" : "scale(1)";
-      span.style.backgroundColor = active ? "#b8f200" : "#2c5ff6";
-    });
-  }
-
-  var carouselPaused = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  function resetAutoAdvance() {
-    if (autoTimer) clearInterval(autoTimer);
-    if (carouselPaused) return;
-    autoTimer = setInterval(function () {
-      showSlide(carouselIdx + 1);
-    }, 5000);
-  }
-
-  window.carouselNav = function (dir) {
-    showSlide(carouselIdx + dir);
-    haptics.medium();
-    resetAutoAdvance();
-  };
-  window.carouselGo = function (i) {
-    showSlide(i);
-    haptics.selection();
-    resetAutoAdvance();
-  };
-
-  // Mobile tap to toggle captions
-  var carouselEl = document.getElementById("group-carousel");
-  if (carouselEl) {
-    carouselEl.addEventListener("click", function (e) {
-      // Don't toggle if clicking arrows or dots
-      if (e.target.closest("button")) return;
-      carouselEl.classList.toggle("captions-visible");
-      haptics.light();
-    });
-  }
-
-  // Pause on hover/focus for WCAG 2.2.2
-  if (carouselEl) {
-    carouselEl.addEventListener("mouseenter", function () {
-      if (autoTimer) clearInterval(autoTimer);
-    });
-    carouselEl.addEventListener("mouseleave", function () {
-      resetAutoAdvance();
-    });
-    carouselEl.addEventListener("focusin", function () {
-      if (autoTimer) clearInterval(autoTimer);
-    });
-    carouselEl.addEventListener("focusout", function () {
-      resetAutoAdvance();
-    });
-  }
-
-  if (slides.length > 0) resetAutoAdvance();
+  // r9: the group-photo carousel was dropped (photos cropped oddly); its init is gone with it.
 });
 
 // --- v43: Email pill unscramble on hover/focus, click or Enter/Space to copy ---
@@ -2398,4 +2240,165 @@ document.addEventListener("DOMContentLoaded", function () {
     }
     copyEmail();
   });
+});
+
+// =====================================================================
+// r8: papers filter, theme-card shortcuts, disclosures.
+// Rows are static HTML generated by gen.js; this only shows/hides them.
+// =====================================================================
+document.addEventListener("DOMContentLoaded", function () {
+  var list = document.getElementById("pub-list");
+  if (!list) return;
+  var rows = Array.prototype.slice.call(list.querySelectorAll(".pub"));
+  var years = Array.prototype.slice.call(list.querySelectorAll(".yr"));
+  var chips = Array.prototype.slice.call(document.querySelectorAll(".chip[data-theme]"));
+  var segs = Array.prototype.slice.call(document.querySelectorAll(".seg button[data-type]"));
+  var q = document.getElementById("pub-q");
+  var more = document.getElementById("pubs-more");
+  var count = document.getElementById("pub-count");
+  var empty = document.getElementById("pub-empty");
+  var reset = document.getElementById("pub-reset");
+  var AT_REST = 10;
+  var state = { theme: "", type: "all", q: "", all: false };
+
+  function refreshNav() {
+    if (typeof window.rebuildSectionOffsets === "function") window.rebuildSectionOffsets();
+  }
+
+  function apply() {
+    var words = state.q.toLowerCase().split(/\s+/).filter(Boolean);
+    var filtered = !!(state.theme || state.type !== "all" || words.length);
+    var shown = 0;
+    var matches = 0;
+    rows.forEach(function (r, i) {
+      var ok =
+        (!state.theme || (" " + r.dataset.themes + " ").indexOf(" " + state.theme + " ") >= 0) &&
+        (state.type === "all" || r.dataset.type === state.type) &&
+        words.every(function (w) { return r.dataset.hay.indexOf(w) >= 0; });
+      if (ok) matches++;
+      // any active filter shows every match; at rest only the 10 most recent
+      var visible = ok && (filtered || state.all || i < AT_REST);
+      r.hidden = !visible;
+      if (visible) shown++;
+    });
+    years.forEach(function (y) { y.hidden = !y.querySelector(".pub:not([hidden])"); });
+    count.textContent = shown + " papers shown"; // r19: screen readers only; no visible count
+    more.hidden = filtered;
+    more.setAttribute("aria-expanded", String(state.all));
+    more.textContent = state.all ? "Recent papers" : "All papers";
+    empty.hidden = matches > 0;
+    chips.forEach(function (c) { c.setAttribute("aria-pressed", String(c.dataset.theme === state.theme)); });
+    segs.forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.type === state.type)); });
+    fitAuthors();
+    refreshNav();
+  }
+
+  // Authors on one line: collapse to "first, …, CE Miles, …, last" only if the full list overflows.
+  function fitAuthors() {
+    rows.forEach(function (r) {
+      if (r.hidden) return;
+      var au = r.querySelector(".au");
+      if (!au || !au.dataset.compact) return;
+      if (!au.dataset.full) au.dataset.full = au.innerHTML;
+      au.innerHTML = au.dataset.full;
+      if (au.scrollWidth > au.clientWidth + 1) au.innerHTML = au.dataset.compact;
+    });
+  }
+
+  chips.forEach(function (c) {
+    c.addEventListener("click", function () {
+      state.theme = state.theme === c.dataset.theme ? "" : c.dataset.theme;
+      haptics.selection();
+      apply();
+    });
+  });
+  segs.forEach(function (b) {
+    b.addEventListener("click", function () {
+      state.type = b.dataset.type;
+      haptics.selection();
+      apply();
+    });
+  });
+  var qTimer = 0;
+  q.addEventListener("input", function () {
+    clearTimeout(qTimer);
+    qTimer = setTimeout(function () { state.q = q.value; apply(); }, 120);
+  });
+  q.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { q.value = ""; state.q = ""; apply(); q.blur(); }
+  });
+  more.addEventListener("click", function () {
+    var wasAll = state.all;
+    state.all = !state.all;
+    haptics.medium();
+    apply();
+    if (wasAll) document.getElementById("publications").scrollIntoView({ behavior: "smooth" });
+  });
+  reset.addEventListener("click", function () {
+    state.theme = ""; state.type = "all"; state.q = ""; q.value = "";
+    apply();
+  });
+
+  // "/" focuses the paper search (unless typing somewhere already)
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+    var t = e.target;
+    if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+    e.preventDefault();
+    q.focus({ preventScroll: true });
+    document.getElementById("publications").scrollIntoView({ behavior: "smooth" });
+  });
+
+  // Research cards filter Papers to that theme and scroll there.
+  // Entry point (documented in r9_papers.js): window.showPapersByTheme(theme), plus any
+  // .theme-link[data-theme] click, caught by one capture-phase listener so markup can change.
+  window.showPapersByTheme = function (theme, opts) {
+    state.theme = theme || "";
+    state.type = "all";
+    state.q = "";
+    q.value = "";
+    apply();
+    if (opts && opts.scroll === false) return;
+    document.getElementById("publications").scrollIntoView({ behavior: "smooth" });
+    if (window.location.hash !== "#publications") history.pushState(null, "", "#publications");
+  };
+  document.addEventListener("click", function (e) {
+    var a = e.target.closest && e.target.closest(".theme-link[data-theme]");
+    if (!a) return;
+    e.preventDefault();
+    e.stopPropagation(); // keep the generic #-link smooth-scroll handler out of it
+    haptics.selection();
+    window.showPapersByTheme(a.dataset.theme);
+  }, true);
+
+  var fitT = 0;
+  window.addEventListener("resize", function () {
+    clearTimeout(fitT);
+    fitT = setTimeout(fitAuthors, 120);
+  }, { passive: true });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitAuthors);
+
+  apply();
+
+  // Disclosures that change section heights refresh the scrollspy
+  document.querySelectorAll("details.alumni").forEach(function (d) {
+    d.addEventListener("toggle", function () {
+      haptics.light();
+      refreshNav();
+    });
+  });
+
+  // Older-news popover: close on outside click or Escape
+  var older = document.querySelector(".older-news");
+  if (older) {
+    document.addEventListener("click", function (e) {
+      if (older.open && !older.contains(e.target)) older.open = false;
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && older.open) {
+        older.open = false;
+        older.querySelector("summary").focus();
+      }
+    });
+  }
 });

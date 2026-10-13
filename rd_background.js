@@ -154,10 +154,13 @@
         }
       }
 
-      const bodyMix = utils.mixColor(utils.palette.softLime, utils.palette.paperBlue, 0.15);
-      const hotMix = utils.mixColor(utils.palette.lime, bodyMix, 0.30);
-      const paperBlue = utils.palette.paperBlue;
-      const blue = utils.palette.blue;
+      // r8: colours and mix weights come from the shared palette "look"
+      // (bg_common.js), which rd_gpu.js reads too, so both paths match.
+      const look = utils.look;
+      const bodyMix = look.body;
+      const hotMix = look.hot;
+      const paperBlue = look.ground;
+      const blue = look.edge;
 
       for (let y = 0; y < simH; y++) {
         const yu = rowUp[y];
@@ -174,12 +177,12 @@
           // sqrt(dx*dx + dy*dy) is meaningfully faster than Math.hypot here and
           // the result is visually identical for these small gradient magnitudes.
           const edge = utils.smoothstep(0.020, 0.10, Math.sqrt(gxv * gxv + gyv * gyv));
-          const band = utils.smoothstep(0.080, 0.36, v);
-          const hot = utils.smoothstep(0.34, 0.60, v);
+          const band = utils.smoothstep(look.bandLo, look.bandHi, v);
+          const hot = utils.smoothstep(look.hotLo, look.hotHi, v);
 
-          let color = utils.mixColor(paperBlue, bodyMix, band * 0.80);
-          color = utils.mixColor(color, hotMix, hot * 0.44);
-          color = utils.mixColor(color, blue, edge * 0.16);
+          let color = utils.mixColor(paperBlue, bodyMix, band * look.bandW);
+          color = utils.mixColor(color, hotMix, hot * look.hotW);
+          color = utils.mixColor(color, blue, edge * look.edgeW);
 
           data[p] = color[0];
           data[p + 1] = color[1];
@@ -189,7 +192,7 @@
       }
       simCtx.putImageData(imageData, 0, 0);
       ctx.save();
-      ctx.globalAlpha = 0.84;
+      ctx.globalAlpha = Math.min(1, utils.look.alpha * 255 / 228);
       ctx.imageSmoothingEnabled = true;
       ctx.drawImage(simCanvas, 0, 0, sim.size.w, sim.size.h);
       ctx.restore();

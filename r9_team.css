@@ -1,0 +1,298 @@
+/* r9 team polish: rules for this aspect only. Overrides style.css; folded in at the end.
+   When folding: style.css's .carousel*, .car-*, .member-join*, .about*, .extras, .favs*, the old
+   vertical .career/.editorial rules and the facepile hover spread are obsolete and can be deleted.
+   ?team=b (r9_team.js adds .team-tiles to #group) brings back r8_band's member tiles. */
+
+/* ---- "fav veggie" pill (r8_sheet): identical on members, alumni and Chris */
+#group .veg {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0 5px;
+  margin-top: 8px;
+  padding: 2px 10px 2px 9px;
+  border-radius: 12px; /* full pill on one line; stays tidy if the honorary note wraps */
+  font-size: 0.74rem;
+  font-style: normal;
+  line-height: 1.6;
+  color: var(--ink);
+  background-color: rgba(255, 255, 255, 0.8);
+  /* r24: a notch quieter (fill 0.16 → 0.10, border 0.5 → 0.32, name 600 → 500, emoji 0.95 → 0.88rem) */
+  background-image: linear-gradient(rgba(var(--pop-rgb), 0.10), rgba(var(--pop-rgb), 0.10));
+  border: 1px solid rgba(var(--pop-rgb), 0.32);
+}
+#group .veg-k { font-style: italic; color: var(--faint); }
+#group .veg-n { font-weight: 500; color: var(--ink-2); }
+#group .veg-e { display: inline-block; font-size: 0.88rem; line-height: 1; }
+#group .veg-e .emoji-fallback { font-size: inherit; }
+#group .veg-note { font-size: 0.66rem; color: var(--faint); opacity: 1; cursor: help; }
+#group .alum .veg { margin-top: 5px; font-size: 0.7rem; padding: 1px 9px 1px 8px; }
+/* r24: "after:" line, a hooked arrow off the degree line so it reads as the next step, not a second credential */
+#group .a-after { position: relative; margin-top: 2px; padding-left: 15px; font-size: 0.72rem; line-height: 1.35; color: var(--muted); }
+#group .a-after::before { content: ""; position: absolute; left: 3px; top: 0.05em; width: 7px; height: 0.62em; border-left: 1.5px solid rgba(44, 95, 246, 0.45); border-bottom: 1.5px solid rgba(44, 95, 246, 0.45); border-bottom-left-radius: 3px; }
+
+/* ---- Roster. Members sit straight on the Team glass (no card-in-card, like Research):
+   photo + text, with a soft lime ring on the photo as the hover. ?team=b restores r8_band's tiles. */
+#group .m-int { margin-top: 3px; }
+#group:not(.team-tiles) .roster { gap: 26px 30px; margin-top: 20px; }
+#group:not(.team-tiles) .member,
+#group:not(.team-tiles) .member:hover {
+  padding: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  transform: none;
+}
+
+/* "You?": same anatomy as a member; the photo is an empty seat holding a broccoli (v53's joke) */
+#group .m-you {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  line-height: 1;
+  background: rgba(var(--pop-rgb), 0.18);
+  border: 2px dashed rgba(44, 95, 246, 0.35);
+  box-shadow: none;
+}
+#group .m-you span { display: block; transition: transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1); }
+#group .member-you:hover .m-you,
+#group .member-you:focus-within .m-you { box-shadow: 0 0 0 3px rgba(var(--pop-rgb), 0.45); border-color: rgba(44, 95, 246, 0.55); }
+#group .member-you:hover .m-you span,
+#group .member-you:focus-within .m-you span { transform: translateY(-3px) scale(1.1); }
+#group .member-you .veg-n { font-weight: 500; font-style: italic; }
+#group.team-tiles .member-you { background: rgba(255, 255, 255, 0.32); }
+
+/* ---- Alumni: faces visible while closed; nothing fans, tilts or spreads on hover */
+#group .alumni { margin-top: 20px; }
+#group .alumni summary { flex-wrap: wrap; row-gap: 6px; transition: color 0.2s ease; }
+#group .facepile { margin-left: 4px; }
+#group .facepile img {
+  width: 28px;
+  height: 28px;
+  margin-left: -6px;
+  transition: none;
+}
+#group .facepile img:first-child,
+#group .alumni summary:hover .facepile img:first-child { margin-left: 0; }
+#group .alumni summary:hover .facepile img { margin-left: -6px; }
+#group .alumni-grid { margin-top: 16px; }
+
+/* ---- Chris: a member card, full width, under the group */
+#group .member-pi {
+  margin-top: 20px;
+  gap: 0;
+  align-items: stretch;
+  padding: 18px 22px 16px 18px;
+}
+#group .member-pi:hover { transform: none; }
+#group:not(.team-tiles) .member-pi,
+#group:not(.team-tiles) .member-pi:hover { margin-top: 22px; padding: 22px 0 0; border-top: 1px solid var(--line); }
+.pi-favs { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: 8px; }
+#group .pi-favs .veg { margin-top: 0; }
+#group .member-pi:hover .m-photo { box-shadow: 0 0 0 2px rgba(var(--pop-rgb), 0.35), 0 8px 16px -10px rgba(16, 26, 91, 0.4); }
+.pi-left { flex: 0 0 35%; min-width: 0; padding-right: 26px; display: flex; flex-direction: column; }
+.pi-who { display: flex; gap: 14px; align-items: center; }
+.pi-who .m-photo { width: 72px; height: 72px; }
+.pi-right {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-left: 26px;
+  border-left: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+}
+#group .member-pi .hobbies { margin-top: 14px; font-size: 0.82rem; color: var(--muted); }
+#group .member-pi .notme { margin-top: 4px; font-size: 0.72rem; line-height: 1.45; color: var(--muted); } /* r23: keyed like Hobbies, a step smaller */
+
+/* career (r14): oldest → now, left to right. One axis through the logos, faint in the past and stronger
+   toward the present, ending in a small arrowhead just past the "now" logo. Each step has the same four
+   text slots (year, title, institution, advisor/mentor); subgrid keeps the slots in shared rows, so a
+   wrapped line moves the whole row, never one step. The empty advisor slot still holds its line. */
+#group .career {
+  --c-gap: 8px;
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-rows: repeat(5, auto);
+  column-gap: var(--c-gap);
+}
+#group .career::before {
+  content: "";
+  position: absolute;
+  left: 14px;
+  /* last logo starts at 80% + 0.8 gap; the line runs on to the arrow tip ~50px past that */
+  right: calc(20% - 0.8 * var(--c-gap) - 57px);
+  top: 17.25px;
+  bottom: auto;
+  width: auto;
+  height: 1.5px;
+  opacity: 1;
+  background: linear-gradient(90deg, rgba(44, 95, 246, 0.14), rgba(44, 95, 246, 0.55));
+}
+#group .c-step {
+  position: relative;
+  grid-row: span 5;
+  display: grid;
+  grid-template-rows: subgrid;
+  grid-template-columns: minmax(0, 1fr); /* override style.css's old .career li grid */
+  justify-items: start;
+  align-items: start;
+  row-gap: 1px;
+  padding: 0;
+  min-width: 0;
+  cursor: default;
+}
+#group .c-step.now::after { /* arrowhead at the present end of the axis */
+  content: "";
+  position: absolute;
+  left: 50px;
+  top: 14.5px;
+  width: 6px;
+  height: 6px;
+  border-top: 1.5px solid rgba(44, 95, 246, 0.6);
+  border-right: 1.5px solid rgba(44, 95, 246, 0.6);
+  transform: rotate(45deg);
+}
+#group .c-step img {
+  position: relative;
+  z-index: 1;
+  /* r21/r22: full-bleed brand tiles (Utah redrawn as white-on-red, img/uu_tile.png), no white mat or halo */
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
+  border-radius: 9px;
+  margin-bottom: 7px;
+  box-shadow: 0 3px 8px -3px rgba(16, 26, 91, 0.35);
+}
+#group .c-step.now img { box-shadow: 0 0 0 2.5px rgba(var(--pop-rgb), 0.9), 0 0 12px rgba(var(--pop-rgb), 0.45); }
+#group .c-y { font-size: 0.76rem; font-weight: 700; line-height: 1.35; color: var(--ink); font-variant-numeric: tabular-nums; }
+#group .c-step.now .c-y { color: var(--accent-deep); }
+#group .c-t { font-size: 0.76rem; font-weight: 600; line-height: 1.35; color: var(--ink); }
+#group .c-t abbr { text-decoration: none; cursor: help; }
+#group .c-o { font-size: 0.74rem; line-height: 1.35; color: var(--muted); }
+#group .c-w { min-height: 1.35em; font-size: 0.72rem; line-height: 1.35; color: var(--faint); }
+#group .c-w a { font-weight: 500; }
+
+/* editorial: two roles side by side, logo + journal + role */
+#group .editorial {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 20px;
+}
+#group .editorial li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: var(--ink);
+  min-width: 0;
+}
+/* r22: same 36px full-bleed tiles as the timeline (PLOS redrawn as white-on-navy, img/plos_tile.png) */
+#group .editorial img { width: 36px; height: 36px; object-fit: cover; flex-shrink: 0; border-radius: 9px; box-shadow: 0 3px 8px -3px rgba(16, 26, 91, 0.35); }
+#group .ed-role { display: block; font-size: 0.72rem; color: var(--faint); }
+
+/* ---- Easter eggs: three tiny monochrome glyphs beside Chris's veggie pill. Hover/focus tints one
+   cobalt and shows a small popover (the cats one is the Finn & Piper photo). Nothing moves or tilts.
+   r9_team.js nudges a popover sideways (--dx) if it would leave the viewport. */
+.eggs { display: inline-flex; align-items: center; gap: 8px; }
+.egg {
+  position: relative;
+  display: inline-flex;
+  width: 17px;
+  height: 17px;
+  color: rgba(92, 103, 129, 0.6);
+  border-radius: 4px;
+  cursor: default;
+  transition: color 0.2s ease;
+}
+a.egg { cursor: pointer; }
+.egg svg { width: 100%; height: 100%; display: block; }
+.egg:hover, .egg:focus-visible { color: var(--accent-deep); }
+.egg:focus-visible { outline: 2px solid rgba(44, 95, 246, 0.5); outline-offset: 3px; }
+.egg-pop {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(calc(-50% + var(--dx, 0px)));
+  width: max-content;
+  max-width: 230px;
+  padding: 4px 9px;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+  color: var(--accent-deep);
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 6px 18px -6px rgba(16, 26, 91, 0.3), 0 0 0 1px var(--line);
+  display: none; /* not just invisible: a hidden popover must not widen the page on phones */
+  pointer-events: none;
+  z-index: 20;
+  animation: egg-in 0.18s ease;
+}
+@keyframes egg-in { from { opacity: 0; } }
+.egg-pop i { font-style: italic; }
+.egg-pop small { display: block; margin-top: 2px; font-size: 0.68rem; font-weight: 500; color: var(--muted); }
+.egg-wide { width: 210px; }
+.egg-photo { width: 168px; padding: 6px 6px 5px; }
+.egg-photo img { display: block; width: 100%; height: auto; aspect-ratio: 673 / 853; object-fit: cover; border-radius: 5px; }
+.egg-photo small { margin-top: 4px; font-style: italic; }
+.egg:hover .egg-pop, .egg:focus-visible .egg-pop, .egg:focus .egg-pop { display: block; }
+
+/* ---- responsive */
+/* r14: tablets (stacked, horizontal timeline, columns ~124px): "Courant, NYU" so no slot wraps */
+@media (min-width: 768px) and (max-width: 899px) {
+  #group .c-long { display: none; }
+}
+/* r14: stack below 1260px (was 900px). Side by side, the timeline's five columns drop under ~126px
+   and "Courant Institute, NYU" / "Associate Professor" would wrap. */
+@media (max-width: 1259px) {
+  #group .member-pi { flex-direction: column; }
+  .pi-left { flex: none; padding-right: 0; }
+  .pi-right { padding-left: 0; padding-top: 16px; margin-top: 14px; border-left: 0; border-top: 1px solid var(--line); }
+}
+@media (max-width: 767px) {
+  #group.team-tiles .member-pi { padding: 16px; }
+  /* vertical: oldest at the top, the axis runs down through the logos to an arrowhead under "now".
+     Every step is three lines tall (title, institution, advisor slot), so the logos sit evenly spaced. */
+  #group .career { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; row-gap: 12px; }
+  #group .career::before { display: none; }
+  #group .c-step {
+    grid-row: auto;
+    grid-template-rows: none;
+    grid-template-columns: 36px 64px minmax(0, 1fr);
+    column-gap: 10px;
+    row-gap: 0;
+    align-items: baseline;
+  }
+  #group .c-step img { grid-column: 1; grid-row: 1 / span 3; align-self: start; margin-bottom: 0; }
+  #group .c-y { grid-column: 2; grid-row: 1; }
+  #group .c-t, #group .c-o, #group .c-w { grid-column: 3; }
+  #group .c-step::before { /* axis segment from this logo down to the next one (or to the arrow) */
+    content: "";
+    position: absolute;
+    left: 17.25px;
+    top: 18px;
+    width: 1.5px;
+    height: calc(100% + 12px);
+    background: linear-gradient(180deg, rgba(44, 95, 246, var(--o0, 0.14)), rgba(44, 95, 246, var(--o1, 0.24)));
+  }
+  #group .c-step:nth-child(2) { --o0: 0.24; --o1: 0.34; }
+  #group .c-step:nth-child(3) { --o0: 0.34; --o1: 0.44; }
+  #group .c-step:nth-child(4) { --o0: 0.44; --o1: 0.55; }
+  #group .c-step.now::before { height: 40px; --o0: 0.55; --o1: 0.6; }
+  #group .c-step.now::after { left: 15px; top: 51px; transform: rotate(135deg); }
+  #group .editorial { grid-template-columns: minmax(0, 1fr); }
+}

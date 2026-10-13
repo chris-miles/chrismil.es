@@ -16,6 +16,50 @@
     ink: [26, 33, 80],
   };
 
+  // ---- r8 palettes ---------------------------------------------------------
+  // One "look" object drives both render paths (rd_background.js on the CPU,
+  // rd_gpu.js on the GPU), so they stay matched. Select with ?palette=<name>.
+  //   ground : field colour where V ~ 0 (between corridors)
+  //   body   : corridor colour, mixed in by band * bandW
+  //   hot    : corridor-core colour, mixed in by hot * hotW
+  //   edge   : contour tint, mixed in by edge * edgeW
+  //   band/hot Lo/Hi : smoothstep ranges on blurred V
+  //   alpha  : effective field opacity over the soft base
+  //   base   : 4 linear-gradient stops of the soft base (top-left -> bottom-right)
+  //   blobs  : 4 drifting radial blobs [colour, alpha] (same positions as v53)
+  // The v53 look is kept as "v53" for comparison (?palette=v53).
+  const LOOKS = {
+    v53: {
+      ground: [242, 246, 255], body: [221, 245, 161], bandW: 0.80,
+      hot: [195, 241, 54], hotW: 0.44, edge: [44, 95, 246], edgeW: 0.16, alpha: 0.84 * 228 / 255,
+      bandLo: 0.080, bandHi: 0.36, hotLo: 0.34, hotHi: 0.60,
+      base: ["#f2f6ff", "#f4f8ff", "#eff9f4", "#ffffff"],
+      blobs: [[[184, 242, 0], 0.34], [[44, 95, 246], 0.12], [[184, 222, 209], 0.22], [[218, 246, 144], 0.11]],
+    },
+    vivid: {
+      ground: [206, 218, 255], body: [240, 250, 222], bandW: 0.88,
+      hot: [184, 242, 0], hotW: 0.84, edge: [48, 90, 246], edgeW: 0.38, alpha: 0.82,
+      bandLo: 0.060, bandHi: 0.22, hotLo: 0.23, hotHi: 0.40,
+      base: ["#e8edff", "#eef2ff", "#f1f5ff", "#f8faff"],
+      blobs: [[[184, 242, 0], 0.20], [[44, 95, 246], 0.16], [[150, 170, 255], 0.20], [[200, 245, 90], 0.10]],
+    },
+    teal: {
+      ground: [196, 236, 226], body: [236, 248, 252], bandW: 0.88,
+      hot: [44, 92, 246], hotW: 0.85, edge: [0, 150, 138], edgeW: 0.36, alpha: 0.84,
+      bandLo: 0.060, bandHi: 0.22, hotLo: 0.23, hotHi: 0.42,
+      base: ["#e4f6f2", "#ebf8f5", "#eef6fb", "#f7fbfc"],
+      blobs: [[[60, 200, 180], 0.24], [[44, 95, 246], 0.12], [[120, 214, 196], 0.22], [[90, 150, 255], 0.12]],
+    },
+  };
+  const paletteName = "vivid";
+  const look = LOOKS[paletteName];
+  document.documentElement.setAttribute("data-palette", paletteName);
+
+  function hexToRgb(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+
   function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
   }
@@ -121,18 +165,18 @@
     ctx.save();
     ctx.globalAlpha = alpha == null ? 1 : alpha;
     const g = ctx.createLinearGradient(0, 0, w, h);
-    g.addColorStop(0, "#f2f6ff");
-    g.addColorStop(0.36, "#f4f8ff");
-    g.addColorStop(0.72, "#eff9f4");
-    g.addColorStop(1, "#ffffff");
+    g.addColorStop(0, look.base[0]);
+    g.addColorStop(0.36, look.base[1]);
+    g.addColorStop(0.72, look.base[2]);
+    g.addColorStop(1, look.base[3]);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
 
     const blobs = [
-      [0.76 + Math.sin(time * 0.09) * 0.025, 0.08 + Math.cos(time * 0.08) * 0.018, 0.44, palette.lime, 0.34],
-      [0.17 + Math.cos(time * 0.07) * 0.018, 0.16 + Math.sin(time * 0.06) * 0.02, 0.38, palette.blue, 0.12],
-      [0.16 + Math.sin(time * 0.06) * 0.02, 0.88 + Math.cos(time * 0.05) * 0.02, 0.42, palette.mint, 0.22],
-      [0.86, 0.86, 0.36, palette.softLime, 0.11],
+      [0.76 + Math.sin(time * 0.09) * 0.025, 0.08 + Math.cos(time * 0.08) * 0.018, 0.44, look.blobs[0][0], look.blobs[0][1]],
+      [0.17 + Math.cos(time * 0.07) * 0.018, 0.16 + Math.sin(time * 0.06) * 0.02, 0.38, look.blobs[1][0], look.blobs[1][1]],
+      [0.16 + Math.sin(time * 0.06) * 0.02, 0.88 + Math.cos(time * 0.05) * 0.02, 0.42, look.blobs[2][0], look.blobs[2][1]],
+      [0.86, 0.86, 0.36, look.blobs[3][0], look.blobs[3][1]],
     ];
 
     blobs.forEach(function (blob) {
@@ -206,6 +250,9 @@
 
   window.BgUtils = {
     palette,
+    look,
+    paletteName,
+    hexToRgb,
     clamp,
     lerp,
     smoothstep,

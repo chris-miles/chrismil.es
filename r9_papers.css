@@ -1,0 +1,104 @@
+/* r9 papers polish: rules for this aspect only. Overrides style.css; folded in at the end. */
+
+/* ---- Title row: "Papers" + Google Scholar */
+.pubs-title { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 18px; }
+.scholar-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--accent-deep);
+  transition: color 0.2s ease;
+}
+.scholar-link span {
+  text-decoration: underline;
+  text-decoration-color: rgba(44, 95, 246, 0.28);
+  text-underline-offset: 4px;
+  transition: text-decoration-color 0.2s ease;
+}
+.scholar-link i { font-size: 1.3rem; color: #4285f4; }
+.scholar-link:hover { color: var(--accent); }
+.scholar-link:hover span { text-decoration-color: rgba(var(--pop-rgb), 0.95); }
+
+/* ---- Key: a faded legend for the link icons. Same glyphs as the rows, in grey, plain text,
+   never interactive. */
+.pub-key {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 4px 16px;
+  margin: -4px 0 8px;
+  font-size: 0.74rem;
+  color: var(--faint);
+  cursor: default;
+  user-select: none;
+}
+.pub-key li { display: inline-flex; align-items: center; gap: 6px; }
+.pub-key i { width: 16px; font-size: 15px; line-height: 1; text-align: center; color: #8d97ad; }
+
+/* ---- Rows: even rhythm.
+   Every row has the same padding and no min-height, so the white space between entries is
+   constant; a two-line title adds exactly one title line. Venue and icons sit on the first
+   title line, which gives one steady scan line down the list. */
+.pub {
+  grid-template-columns: 4px minmax(0, 1fr) 140px 88px;
+  align-items: start;
+  min-height: 0;
+  padding: 12px 0;
+}
+.bar { margin: 2px 0; }
+.venue { line-height: 1.269rem; } /* = title line box (0.94rem x 1.35) */
+.yl { padding-top: 11px; line-height: 1.269rem; }
+.yl span { display: inline-block; }
+
+/* ---- Icon slots: PDF | DOI or web | arXiv or bioRxiv, fixed so they align down the list.
+   r9.1: one treatment for every icon: a bare glyph in cobalt, 18px, centred in a 28px hit area.
+   No tiles at rest; hover/focus shows a soft lime circle behind the glyph (same idea as the
+   header's round icon hover). The per-glyph sizes below only even out optical size. */
+.acts {
+  grid-template-columns: repeat(3, 28px);
+  gap: 2px;
+  --acts-h: 1.27rem;    /* = first title line; the 28px boxes overflow it evenly, row height unchanged */
+  height: var(--acts-h);
+  align-items: center;
+}
+.act {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-block: calc((var(--acts-h) - 28px) / 2);
+  border-radius: 50%;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--accent);
+  background: transparent;
+  text-decoration: none;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+.act i { display: block; line-height: 1; }
+.act-arxiv { font-size: 19px; }
+.act .ico-book { width: 18px; height: 18px; display: block; }
+.pub-key .ico-book { width: 15px; height: 15px; color: #8d97ad; flex: none; }
+.act:hover { color: var(--accent-deep); background: rgba(var(--pop-rgb), 0.38); transform: none; box-shadow: none; } /* cancels style.css .act-pdf:hover lift/ring */
+.act:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; background: rgba(var(--pop-rgb), 0.3); }
+
+@media (max-width: 1099px) {
+  .pub { grid-template-columns: 4px minmax(0, 1fr) 120px 88px; }
+}
+@media (max-width: 860px) {
+  .pub { grid-template-columns: 4px minmax(0, 1fr) 88px; row-gap: 5px; }
+  .acts { --acts-h: 22px; }
+  .venue { line-height: 22px; }
+}
+@media (max-width: 767px) {
+  .pubs-title { justify-content: space-between; }
+  .pub-key { justify-content: flex-start; margin: 0 0 8px; }
+}
+@media (max-width: 420px) {
+  .pub { grid-template-columns: 4px minmax(0, 1fr) 88px; column-gap: 12px; }
+  .pub-key { gap: 4px 12px; }
+}

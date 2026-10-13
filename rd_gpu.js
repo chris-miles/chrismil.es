@@ -252,6 +252,8 @@
     "uniform sampler2D uBlur;\n" +
     "uniform vec2 uSim;\n" +
     "uniform vec3 uPaperBlue, uBodyMix, uHotMix, uBlue;\n" +
+    "uniform vec4 uRanges;\n" +   // bandLo, bandHi, hotLo, hotHi (palette look)
+    "uniform vec3 uWeights;\n" +  // bandW, hotW, edgeW
     "out vec4 outColor;\n" +
     "void main(){\n" +
     "  vec2 tx = 1.0 / uSim;\n" +
@@ -260,11 +262,11 @@
     "  float gxv = abs(texture(uBlur, uv + vec2(tx.x, 0.0)).r - texture(uBlur, uv - vec2(tx.x, 0.0)).r);\n" +
     "  float gyv = abs(texture(uBlur, uv + vec2(0.0, tx.y)).r - texture(uBlur, uv - vec2(0.0, tx.y)).r);\n" +
     "  float edge = smoothstep(0.020, 0.10, sqrt(gxv * gxv + gyv * gyv));\n" +
-    "  float band = smoothstep(0.080, 0.36, v);\n" +
-    "  float hot  = smoothstep(0.34, 0.60, v);\n" +
-    "  vec3 col = mix(uPaperBlue, uBodyMix, band * 0.80);\n" +
-    "  col = mix(col, uHotMix, hot * 0.44);\n" +
-    "  col = mix(col, uBlue, edge * 0.16);\n" +
+    "  float band = smoothstep(uRanges.x, uRanges.y, v);\n" +
+    "  float hot  = smoothstep(uRanges.z, uRanges.w, v);\n" +
+    "  vec3 col = mix(uPaperBlue, uBodyMix, band * uWeights.x);\n" +
+    "  col = mix(col, uHotMix, hot * uWeights.y);\n" +
+    "  col = mix(col, uBlue, edge * uWeights.z);\n" +
     "  outColor = vec4(col, 1.0);\n" +
     "}\n";
 
@@ -275,12 +277,9 @@
     "uniform vec2 uRes;\n" +
     "uniform float uTime, uFieldAlpha;\n" +
     "uniform vec3 uLime, uBlue, uMint, uSoftLime;\n" +
+    "uniform vec4 uBlobA;\n" +            // the four blob alphas (palette look)
+    "uniform vec3 G0, G1, G2, G3;\n" +   // drawSoftBase's gradient stops (palette look)
     "out vec4 outColor;\n" +
-    // drawSoftBase's linear gradient stops (#f2f6ff / #f4f8ff / #eff9f4 / #fff).
-    "const vec3 G0 = vec3(242.0, 246.0, 255.0) / 255.0;\n" +
-    "const vec3 G1 = vec3(244.0, 248.0, 255.0) / 255.0;\n" +
-    "const vec3 G2 = vec3(239.0, 249.0, 244.0) / 255.0;\n" +
-    "const vec3 G3 = vec3(255.0, 255.0, 255.0) / 255.0;\n" +
     // Canvas radial gradient: alpha falls linearly to 0 at r, composited source-over.
     "vec3 blob(vec3 dst, vec2 p, vec2 centre, float radius, vec3 col, float alpha){\n" +
     "  float d = length(p - centre) / radius;\n" +
@@ -297,12 +296,12 @@
     "  else               base = mix(G2, G3, (t - 0.72) / 0.28);\n" +
     "  float R = max(w, h);\n" +
     "  base = blob(base, p, vec2((0.76 + sin(uTime * 0.09) * 0.025) * w,\n" +
-    "                            (0.08 + cos(uTime * 0.08) * 0.018) * h), 0.44 * R, uLime,     0.34);\n" +
+    "                            (0.08 + cos(uTime * 0.08) * 0.018) * h), 0.44 * R, uLime,     uBlobA.x);\n" +
     "  base = blob(base, p, vec2((0.17 + cos(uTime * 0.07) * 0.018) * w,\n" +
-    "                            (0.16 + sin(uTime * 0.06) * 0.020) * h), 0.38 * R, uBlue,     0.12);\n" +
+    "                            (0.16 + sin(uTime * 0.06) * 0.020) * h), 0.38 * R, uBlue,     uBlobA.y);\n" +
     "  base = blob(base, p, vec2((0.16 + sin(uTime * 0.06) * 0.020) * w,\n" +
-    "                            (0.88 + cos(uTime * 0.05) * 0.020) * h), 0.42 * R, uMint,     0.22);\n" +
-    "  base = blob(base, p, vec2(0.86 * w, 0.86 * h),                     0.36 * R, uSoftLime, 0.11);\n" +
+    "                            (0.88 + cos(uTime * 0.05) * 0.020) * h), 0.42 * R, uMint,     uBlobA.z);\n" +
+    "  base = blob(base, p, vec2(0.86 * w, 0.86 * h),                     0.36 * R, uSoftLime, uBlobA.w);\n" +
     // uField is CLAMP_TO_EDGE + LINEAR: same bilinear upscale canvas drawImage does.
     "  vec3 field = texture(uField, gl_FragCoord.xy / uRes).rgb;\n" +
     "  outColor = vec4(mix(base, field, uFieldAlpha), 1.0);\n" +
@@ -395,6 +394,8 @@
 
     var canvas = document.getElementById("shader-gradient");
     if (!canvas) return false;
+    // r8: ?cpu=1 forces the CPU fallback (for checking that both paths match).
+    if (/(?:\?|&)cpu=1(?:&|$)/.test(window.location.search || "")) return false;
 
     var gl = canvas.getContext("webgl2", {
       alpha: false,
@@ -457,9 +458,10 @@
 
     var pointer = makeWindowPointer();
     var reduced = utils.hasReducedMotion();
-    var pal = utils.palette;
-    var bodyMix = utils.mixColor(pal.softLime, pal.paperBlue, 0.15);
-    var hotMix = utils.mixColor(pal.lime, bodyMix, 0.30);
+    // r8: palette "look" shared with the CPU path (bg_common.js).
+    var look = utils.look;
+    var bodyMix = look.body;
+    var hotMix = look.hot;
     function norm(c) { return [c[0] / 255, c[1] / 255, c[2] / 255]; }
 
     var size = utils.resizeCanvas(canvas, MAX_DPR);
@@ -601,10 +603,12 @@
       gl.useProgram(p.prog);
       bindTex(0, blurB, p.u.uBlur);
       gl.uniform2f(p.u.uSim, simW, simH);
-      gl.uniform3fv(p.u.uPaperBlue, norm(pal.paperBlue));
+      gl.uniform3fv(p.u.uPaperBlue, norm(look.ground));
       gl.uniform3fv(p.u.uBodyMix, norm(bodyMix));
       gl.uniform3fv(p.u.uHotMix, norm(hotMix));
-      gl.uniform3fv(p.u.uBlue, norm(pal.blue));
+      gl.uniform3fv(p.u.uBlue, norm(look.edge));
+      gl.uniform4f(p.u.uRanges, look.bandLo, look.bandHi, look.hotLo, look.hotHi);
+      gl.uniform3f(p.u.uWeights, look.bandW, look.hotW, look.edgeW);
       drawTo(field, simW, simH);
     }
 
@@ -614,11 +618,16 @@
       bindTex(0, field, p.u.uField);
       gl.uniform2f(p.u.uRes, size.w, size.h);
       gl.uniform1f(p.u.uTime, time);
-      gl.uniform1f(p.u.uFieldAlpha, FIELD_ALPHA);
-      gl.uniform3fv(p.u.uLime, norm(pal.lime));
-      gl.uniform3fv(p.u.uBlue, norm(pal.blue));
-      gl.uniform3fv(p.u.uMint, norm(pal.mint));
-      gl.uniform3fv(p.u.uSoftLime, norm(pal.softLime));
+      gl.uniform1f(p.u.uFieldAlpha, look.alpha);
+      gl.uniform3fv(p.u.uLime, norm(look.blobs[0][0]));
+      gl.uniform3fv(p.u.uBlue, norm(look.blobs[1][0]));
+      gl.uniform3fv(p.u.uMint, norm(look.blobs[2][0]));
+      gl.uniform3fv(p.u.uSoftLime, norm(look.blobs[3][0]));
+      gl.uniform4f(p.u.uBlobA, look.blobs[0][1], look.blobs[1][1], look.blobs[2][1], look.blobs[3][1]);
+      gl.uniform3fv(p.u.G0, norm(utils.hexToRgb(look.base[0])));
+      gl.uniform3fv(p.u.G1, norm(utils.hexToRgb(look.base[1])));
+      gl.uniform3fv(p.u.G2, norm(utils.hexToRgb(look.base[2])));
+      gl.uniform3fv(p.u.G3, norm(utils.hexToRgb(look.base[3])));
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       gl.viewport(0, 0, size.w, size.h);
       gl.drawArrays(gl.TRIANGLES, 0, 3);
