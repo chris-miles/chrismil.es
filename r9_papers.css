@@ -49,8 +49,15 @@
   padding: 12px 0;
 }
 .bar { margin: 2px 0; }
-.venue { line-height: 1.269rem; } /* = title line box (0.94rem x 1.35) */
-.yl { padding-top: 11px; line-height: 1.269rem; }
+/* v57: slightly tighter text. Title 1.35 -> 1.27, authors drop the body's 1.5 paragraph leading. */
+.pt { line-height: 1.27; }
+.pa { line-height: 1.35; margin-top: 2px; }
+.venue { line-height: 1.194rem; } /* = title line box (0.94rem x 1.27) */
+.yl { padding-top: 11px; line-height: 1.194rem; }
+/* v57: book chapter / dispatch / news report sit under their venue (venue = title line, type = author line),
+   and those venues are blue like every other venue. */
+.venue-other { color: var(--accent-deep); }
+.venue .kind { display: block; margin-top: 2px; padding: 0; border: 0; font-size: 0.72rem; font-weight: 500; font-style: italic; line-height: 1.35; color: var(--faint); } /* plain, like "preprint", so it left-aligns with the venue */
 .yl span { display: inline-block; }
 
 /* ---- Icon slots: PDF | DOI or web | arXiv or bioRxiv, fixed so they align down the list.
@@ -60,7 +67,7 @@
 .acts {
   grid-template-columns: repeat(3, 28px);
   gap: 2px;
-  --acts-h: 1.27rem;    /* = first title line; the 28px boxes overflow it evenly, row height unchanged */
+  --acts-h: 1.194rem;    /* = first title line; the 28px boxes overflow it evenly, row height unchanged */
   height: var(--acts-h);
   align-items: center;
 }
@@ -85,6 +92,17 @@
 .pub-key .ico-book { width: 15px; height: 15px; color: #8d97ad; flex: none; }
 .act:hover { color: var(--accent-deep); background: rgba(var(--pop-rgb), 0.38); transform: none; box-shadow: none; } /* cancels style.css .act-pdf:hover lift/ring */
 .act:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; background: rgba(var(--pop-rgb), 0.3); }
+/* v57: hovering or tabbing onto a title lights the icon it opens (PDF, else preprint, else journal),
+   so the title's destination is visible. Same lime circle as .act:hover; short delay so sweeping
+   the cursor down the list doesn't flicker. */
+.pub:has(a.pt[data-umami-event-link="pdf"]:is(:hover, :focus-visible)) .act-pdf,
+.pub:has(a.pt[data-umami-event-link="journal"]:is(:hover, :focus-visible)) .act-journal,
+.pub:has(a.pt[data-umami-event-link="arxiv"]:is(:hover, :focus-visible)) .act-arxiv,
+.pub:has(a.pt[data-umami-event-link="biorxiv"]:is(:hover, :focus-visible)) .act-biorxiv {
+  color: var(--accent-deep);
+  background: rgba(var(--pop-rgb), 0.38);
+  transition-delay: 80ms;
+}
 
 @media (max-width: 1099px) {
   .pub { grid-template-columns: 4px minmax(0, 1fr) 120px 88px; }
@@ -93,6 +111,8 @@
   .pub { grid-template-columns: 4px minmax(0, 1fr) 88px; row-gap: 5px; }
   .acts { --acts-h: 22px; }
   .venue { line-height: 22px; }
+  .venue:has(.kind) { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 6px; }  /* tag wraps flush-left under the venue when the row is too narrow */
+  .venue .kind { margin: 0; white-space: nowrap; }
 }
 @media (max-width: 767px) {
   .pubs-title { justify-content: space-between; }
